@@ -11,6 +11,6 @@
 
 @interface PickerViewAlert : NSObject
 
-+(int)doModal:(UIViewController *)parent dataSouce:(NSArray *)array;
++(int)doModal:(UIViewController *)parent title:(NSString *)title dataSouce:(NSArray *)array;
 
 @end

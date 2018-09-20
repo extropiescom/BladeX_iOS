@@ -26,7 +26,7 @@
 
 @implementation PickerViewAlert
 
-+(int)doModal:(UIViewController *)parent dataSouce:(NSArray *)array
++(int)doModal:(UIViewController *)parent title:(NSString *)title dataSouce:(NSArray *)array
 {
     __block int result = 0;
     PickerViewAlert* view = [[PickerViewAlert alloc] init];
@@ -60,7 +60,7 @@
         CGFloat pickerH = 7 * 20 + 10;// 一个换行为20
         
         UILabel* label = [[UILabel alloc] initWithFrame:CGRectMake(0, 0, pickerW, 40)];
-        label.text = @"Please choose signature verify method:";
+        label.text = title;
         [sheet.view addSubview:label];
         view.picker = [[UIPickerView alloc]initWithFrame:CGRectMake(pickerX, pickerY, pickerW, pickerH)];
         view.picker.backgroundColor = [UIColor colorWithRed:247/255.0 green:247/255.0 blue:247/255.0 alpha:1];
