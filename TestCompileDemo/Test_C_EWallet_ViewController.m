@@ -73,6 +73,7 @@
 
 @property (nonatomic, strong) UIButton *clearScreenBtn;
 @property (nonatomic, strong) UIButton *powerOffBtn;
+@property (nonatomic, strong) UIButton *writeSNBtn;
 
 @property (nonatomic, strong) UIButton *setImageDataBtn;
 @property (nonatomic, strong) UIButton *showImageBtn;
@@ -170,7 +171,7 @@ int PutSignState(void * const pCallbackContext, const int nSignState)
     
     [self addSubViewAfterVDLoad];
     
-    _deviceCategoryList = [NSArray arrayWithObjects:_getDevInfoBtn, _initiPinBtn, _verifyPinBtn, _changePinBtn, _formatBtn, _clearScreenBtn, _freeContextBtn, _powerOffBtn, nil];
+    _deviceCategoryList = [NSArray arrayWithObjects:_getDevInfoBtn, _initiPinBtn, _verifyPinBtn, _changePinBtn, _formatBtn, _clearScreenBtn, _freeContextBtn, _powerOffBtn, _writeSNBtn,nil];
     _fPrintCategoryList = [NSArray arrayWithObjects:_getFPListBtn, _enrollFPBtn, _verifyFPBtn, _deleteFPBtn, _calibrateFPBtn, _abortBtn, nil];
     _InitCategoryList = [NSArray arrayWithObjects:_genSeedBtn, _importMNEBtn, _recoverSeedBtn, nil];
     _walletCategoryList = [NSArray arrayWithObjects:_getAddressBtn, _getDeviceCheckCodeBtn, _ETHSignBtn, _EOSSignBtn, _CYBSignBtn,_signAbortBtn, nil];
@@ -273,6 +274,7 @@ int PutSignState(void * const pCallbackContext, const int nSignState)
     [self.view addSubview:self.clearScreenBtn];
     [self.view addSubview:self.freeContextBtn];
     [self.view addSubview:self.powerOffBtn];
+    [self.view addSubview:self.writeSNBtn];
     
     [self.view addSubview:self.getFPListBtn];
     [self.view addSubview:self.enrollFPBtn];
@@ -311,7 +313,7 @@ int PutSignState(void * const pCallbackContext, const int nSignState)
             make.top.mas_equalTo(self.getDevInfoBtn.mas_bottom).offset(20);
             make.height.mas_equalTo(30);
         }];
-        NSArray *cat1Arr3 = @[self.freeContextBtn, self.powerOffBtn];
+        NSArray *cat1Arr3 = @[self.freeContextBtn, self.powerOffBtn, self.writeSNBtn];
         [cat1Arr3 mas_distributeViewsAlongAxis:MASAxisTypeHorizontal withFixedSpacing:10 leadSpacing:30 tailSpacing:30];
         [cat1Arr3 mas_makeConstraints:^(MASConstraintMaker *make) {
             make.top.mas_equalTo(self.changePinBtn.mas_bottom).offset(20);
@@ -545,6 +547,19 @@ int PutSignState(void * const pCallbackContext, const int nSignState)
         [_powerOffBtn addTarget:self action:@selector(powerOffBtnAction) forControlEvents:UIControlEventTouchUpInside];
     }
     return _powerOffBtn;
+}
+
+- (UIButton *)writeSNBtn
+{
+    if (!_writeSNBtn) {
+        _writeSNBtn = [UIButton buttonWithType:UIButtonTypeCustom];
+        [_writeSNBtn setTitle:@"WriteSN" forState:UIControlStateNormal];
+        [_writeSNBtn setTitleColor:[UIColor blueColor] forState:UIControlStateNormal];
+        _writeSNBtn.titleLabel.font = [UIFont systemFontOfSize:15.0 weight:UIFontWeightMedium];
+        [_writeSNBtn setBackgroundColor:[UIColor lightGrayColor]];
+        [_writeSNBtn addTarget:self action:@selector(writeSNBtnAction) forControlEvents:UIControlEventTouchUpInside];
+    }
+    return _writeSNBtn;
 }
 
 - (UIButton *)getImageListBtn
@@ -862,6 +877,44 @@ int PutSignState(void * const pCallbackContext, const int nSignState)
         }
         
     });
+}
+
+- (void)writeSNBtnAction
+{
+    self->_inputView =[ToolInputView toolInputViewWithCallback:^(NSString *number) {
+        self->_inputView = nil;
+        if (number.length != 15) {
+            [self printLog:@"Invalid SN input"];
+            return ;
+        }
+        BOOL snValid = YES;
+        for (int i = 0; i < number.length; i++) {
+            char c = [number UTF8String][i];
+            if (!((c >= '0' && c <= '9') || (c >= 'a' && c<= 'z') || (c >= 'A' && c <= 'Z'))) {
+                snValid = NO;
+            }
+        }
+        if (!snValid) {
+            [self printLog:@"Invalid SN input"];
+            return;
+        }
+        
+        dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
+            int devIdx = 0;
+            void *ppPAEWContext = (void*)self.savedDevice;
+            int iRtn = PAEW_RET_UNKNOWN_FAIL;
+            unsigned char serial[PAEW_DEV_INFO_SN_LEN] = {0};
+            memcpy(serial, [number UTF8String], 15);
+            [self printLog:@"ready to call PAEW_WriteSN"];
+            iRtn = PAEW_WriteSN(ppPAEWContext, devIdx, serial, PAEW_DEV_INFO_SN_LEN);
+            if (iRtn != PAEW_RET_SUCCESS) {
+                [self printLog:@"PAEW_WriteSN returns failed: %@", [Utils errorCodeToString:iRtn]];
+            } else {
+                [self printLog:@"PAEW_WriteSN returns success"];
+            }
+        });
+        
+    }];
 }
 
 - (void)clearScreenBtnAction
