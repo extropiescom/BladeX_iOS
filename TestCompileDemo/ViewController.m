@@ -9,7 +9,7 @@
 #import "ViewController.h"
 #import "ToolCell.h"
 #import "VCCellModel.h"
-#import "PA_EWallet.h"
+#import "PA_EWallet/iOS_EWalletDynamic.framework/Headers/PA_EWallet.h"
 #import "Utils.h"
 
 #import "Test_C_EWallet_ViewController.h"

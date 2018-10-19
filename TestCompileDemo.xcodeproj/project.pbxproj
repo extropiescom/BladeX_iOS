@@ -27,7 +27,9 @@
 		3CA0ABA4212D6E0900071F12 /* Utils.m in Sources */ = {isa = PBXBuildFile; fileRef = 3CA0ABA3212D6E0900071F12 /* Utils.m */; };
 		3CC24543212C333400A9EFC3 /* PickerViewAlert.m in Sources */ = {isa = PBXBuildFile; fileRef = 3CC24542212C333400A9EFC3 /* PickerViewAlert.m */; };
 		3CC24546212D2A1C00A9EFC3 /* TextFieldViewAlert.m in Sources */ = {isa = PBXBuildFile; fileRef = 3CC24545212D2A1C00A9EFC3 /* TextFieldViewAlert.m */; };
-		3E22982E2130362B00C683CE /* libiOS_EWallet.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 3C88904721228AD500A879F0 /* libiOS_EWallet.a */; };
+		3E25B7EC217890FD00E6241F /* iOS_EWalletDynamic.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 3E25B7EB217890FD00E6241F /* iOS_EWalletDynamic.framework */; };
+		3E25B7ED2178910500E6241F /* iOS_EWalletDynamic.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 3E25B7EB217890FD00E6241F /* iOS_EWalletDynamic.framework */; };
+		3E25B7EE2178910500E6241F /* iOS_EWalletDynamic.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = 3E25B7EB217890FD00E6241F /* iOS_EWalletDynamic.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
 		58EA3A75729A77B15058AC06 /* libPods-TestCompileDemo.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 0A4CF875A8581F55CE04A971 /* libPods-TestCompileDemo.a */; };
 /* End PBXBuildFile section */
 
@@ -47,6 +49,20 @@
 			remoteInfo = TestCompileDemo;
 		};
 /* End PBXContainerItemProxy section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		3E90879C21709C6A001262F2 /* Embed Frameworks */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 10;
+			files = (
+				3E25B7EE2178910500E6241F /* iOS_EWalletDynamic.framework in Embed Frameworks */,
+			);
+			name = "Embed Frameworks";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
 		0A4CF875A8581F55CE04A971 /* libPods-TestCompileDemo.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = "libPods-TestCompileDemo.a"; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -76,7 +92,6 @@
 		3C1C1EF621216B770055F8FF /* TestCompileDemoUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = TestCompileDemoUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		3C1C1EFA21216B770055F8FF /* TestCompileDemoUITests.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = TestCompileDemoUITests.m; sourceTree = "<group>"; };
 		3C1C1EFC21216B770055F8FF /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
-		3C1C1F1221217F150055F8FF /* PA_EWallet.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = PA_EWallet.h; sourceTree = "<group>"; };
 		3C1C1F152121812C0055F8FF /* Compile_EWallet.pch */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = Compile_EWallet.pch; sourceTree = "<group>"; };
 		3C1C1F16212182140055F8FF /* StructHeaderFile.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = StructHeaderFile.h; sourceTree = "<group>"; };
 		3C1C1F1D212188320055F8FF /* ToolCell.xib */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = file.xib; path = ToolCell.xib; sourceTree = "<group>"; };
@@ -86,13 +101,13 @@
 		3C1C1F24212188510055F8FF /* VCCellModel.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = VCCellModel.m; sourceTree = "<group>"; };
 		3C38C3EF21254C4C00EA0A1A /* ToolInputView.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ToolInputView.h; sourceTree = "<group>"; };
 		3C38C3F021254C4C00EA0A1A /* ToolInputView.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = ToolInputView.m; sourceTree = "<group>"; };
-		3C88904721228AD500A879F0 /* libiOS_EWallet.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; path = libiOS_EWallet.a; sourceTree = "<group>"; };
 		3CA0ABA2212D6E0900071F12 /* Utils.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = Utils.h; sourceTree = "<group>"; };
 		3CA0ABA3212D6E0900071F12 /* Utils.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = Utils.m; sourceTree = "<group>"; };
 		3CC24541212C333400A9EFC3 /* PickerViewAlert.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = PickerViewAlert.h; sourceTree = "<group>"; };
 		3CC24542212C333400A9EFC3 /* PickerViewAlert.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = PickerViewAlert.m; sourceTree = "<group>"; };
 		3CC24544212D2A1C00A9EFC3 /* TextFieldViewAlert.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = TextFieldViewAlert.h; sourceTree = "<group>"; };
 		3CC24545212D2A1C00A9EFC3 /* TextFieldViewAlert.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = TextFieldViewAlert.m; sourceTree = "<group>"; };
+		3E25B7EB217890FD00E6241F /* iOS_EWalletDynamic.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; path = iOS_EWalletDynamic.framework; sourceTree = "<group>"; };
 		9A5F10E779203CB114825C89 /* Pods-TestCompileDemo.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-TestCompileDemo.release.xcconfig"; path = "Pods/Target Support Files/Pods-TestCompileDemo/Pods-TestCompileDemo.release.xcconfig"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -101,8 +116,9 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				3E22982E2130362B00C683CE /* libiOS_EWallet.a in Frameworks */,
 				58EA3A75729A77B15058AC06 /* libPods-TestCompileDemo.a in Frameworks */,
+				3E25B7EC217890FD00E6241F /* iOS_EWalletDynamic.framework in Frameworks */,
+				3E25B7ED2178910500E6241F /* iOS_EWalletDynamic.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -229,8 +245,7 @@
 		3C1C1F0C21217D800055F8FF /* PA_EWallet */ = {
 			isa = PBXGroup;
 			children = (
-				3C1C1F1221217F150055F8FF /* PA_EWallet.h */,
-				3C88904721228AD500A879F0 /* libiOS_EWallet.a */,
+				3E25B7EB217890FD00E6241F /* iOS_EWalletDynamic.framework */,
 			);
 			path = PA_EWallet;
 			sourceTree = "<group>";
@@ -274,6 +289,7 @@
 				3C1C1ED021216B760055F8FF /* Frameworks */,
 				3C1C1ED121216B760055F8FF /* Resources */,
 				B1A1ACA45B583C3AF8223610 /* [CP] Copy Pods Resources */,
+				3E90879C21709C6A001262F2 /* Embed Frameworks */,
 			);
 			buildRules = (
 			);
@@ -628,11 +644,17 @@
 				ARCHS = (
 					"$(ARCHS_STANDARD)",
 					armv7s,
+					armv7,
 				);
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_STYLE = Automatic;
 				DEVELOPMENT_TEAM = T9DGSP4THT;
 				ENABLE_BITCODE = NO;
+				FRAMEWORK_SEARCH_PATHS = (
+					"$(inherited)",
+					"$(PROJECT_DIR)/TestCompileDemo/PA_EWallet",
+					"$(PROJECT_DIR)",
+				);
 				GCC_PRECOMPILE_PREFIX_HEADER = YES;
 				GCC_PREFIX_HEADER = "$(SRCROOT)/TestCompileDemo/Compile_EWallet.pch";
 				INFOPLIST_FILE = TestCompileDemo/Info.plist;
@@ -650,7 +672,7 @@
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				TARGETED_DEVICE_FAMILY = "1,2";
 				USER_HEADER_SEARCH_PATHS = "$(PODS_ROOT)/**";
-				VALID_ARCHS = "arm64 armv7s";
+				VALID_ARCHS = "arm64 armv7s armv7";
 			};
 			name = Debug;
 		};
@@ -661,11 +683,17 @@
 				ARCHS = (
 					"$(ARCHS_STANDARD)",
 					armv7s,
+					armv7,
 				);
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_STYLE = Automatic;
 				DEVELOPMENT_TEAM = T9DGSP4THT;
 				ENABLE_BITCODE = NO;
+				FRAMEWORK_SEARCH_PATHS = (
+					"$(inherited)",
+					"$(PROJECT_DIR)/TestCompileDemo/PA_EWallet",
+					"$(PROJECT_DIR)",
+				);
 				GCC_PRECOMPILE_PREFIX_HEADER = YES;
 				GCC_PREFIX_HEADER = "$(SRCROOT)/TestCompileDemo/Compile_EWallet.pch";
 				INFOPLIST_FILE = TestCompileDemo/Info.plist;
@@ -683,7 +711,7 @@
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				TARGETED_DEVICE_FAMILY = "1,2";
 				USER_HEADER_SEARCH_PATHS = "$(PODS_ROOT)/**";
-				VALID_ARCHS = "arm64 armv7s";
+				VALID_ARCHS = "arm64 armv7s armv7";
 			};
 			name = Release;
 		};

@@ -7,7 +7,7 @@
 //
 
 #import "Test_C_EWallet_ViewController.h"
-#import "PA_EWallet.h"
+#import "PA_EWallet/iOS_EWalletDynamic.framework/Headers/PA_EWallet.h"
 #import "ToolInputView.h"
 #import "PickerViewAlert.h"
 #import "TextFieldViewAlert.h"

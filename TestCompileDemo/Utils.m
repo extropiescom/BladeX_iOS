@@ -7,7 +7,7 @@
 //
 
 #import "Utils.h"
-#import "PA_EWallet.h"
+#import "PA_EWallet/iOS_EWalletDynamic.framework/Headers/PA_EWallet.h"
 
 @implementation Utils
 
