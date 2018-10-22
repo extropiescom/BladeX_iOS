@@ -181,15 +181,16 @@ void *savedDevH;//device handle
     __block size_t nDeviceNameLen = 512*16;
     __block size_t nDevCount = 0;
     __block EnumContext DevContext = {0};
-    DevContext.timeout = 2;//scanning may found nothing if timeout is lower than 2 seconds. So the suggested timeout value should be larger than 2
+    DevContext.timeout = 15;//scanning may found nothing if timeout is lower than 2 seconds. So the suggested timeout value should be larger than 2
     DevContext.enumCallBack = EnumCallback;
     NSString *devName = self.devNameField.text;
     strcpy(DevContext.searchName, [[devName stringByTrimmingCharactersInSet:NSCharacterSet.whitespaceCharacterSet] UTF8String]);
-    [LCProgressHUD showLoading:@"PAEW_GetDeviceListWithDevContext started"];
+    //[LCProgressHUD showLoading:@"PAEW_GetDeviceListWithDevContext started"];
+    [LCProgressHUD showInfoMsg:@"PAEW_GetDeviceListWithDevContext Success"];
     dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
         int devInfoState = PAEW_GetDeviceListWithDevContext(nDeviceType, szDeviceNames, &nDeviceNameLen, &nDevCount, &DevContext, sizeof(DevContext));
         dispatch_async(dispatch_get_main_queue(), ^{
-            [LCProgressHUD hide];
+            //[LCProgressHUD hide];
             if (devInfoState == 0) {
                 //you can process device list either here or EnumCallback
                 

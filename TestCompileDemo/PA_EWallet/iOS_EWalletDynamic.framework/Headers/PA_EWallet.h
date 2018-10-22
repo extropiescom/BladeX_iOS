@@ -1059,6 +1059,15 @@ int EWALLET_API PAEW_SetImageName(void * const pPAEWContext, const size_t nDevIn
 */
 int EWALLET_API PAEW_ConvertBMP(const unsigned char * const pbOrigImage, const size_t nOrigImageLen, const size_t nWidth, const size_t nHeight, unsigned char * const pbDestImage, size_t * const pnDestImageLen);
 
+/*
+验证文件签名
+[IN] szFileFullPath：待验证签名的文件全路径，不可为NULL
+[IN] pbSignature：待验证的文件签名，不可为NULL
+[IN] nSignatureLen：文件签名长度
+[RETURN] PAEW_RET_SUCCESS为成功，非PAEW_RET_SUCCESS值为失败
+*/
+int EWALLET_API PAEW_VerifyFileECCSignature(const char * const szFileFullPath, const unsigned char * const pbSignature, const size_t nSignatureLen);
+
 #ifdef __cplusplus
 };
 #endif
