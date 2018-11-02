@@ -50,11 +50,11 @@
     self.RSSILabel.text = [NSString stringWithFormat:@"%ld",(long)peripheral.RSSI ];
 
     if (peripheral.state == CBPeripheralStateConnected) {
-        self.stateLabel.text = @"已连接";
+        self.stateLabel.text = @"connected";
         self.stateLabel.backgroundColor = [UIColor greenColor];
     }else{
         self.stateLabel.backgroundColor = [UIColor orangeColor];
-        self.stateLabel.text = @"未连接";
+        self.stateLabel.text = @"disconnected";
     }
 }
 
