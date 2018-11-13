@@ -24,6 +24,8 @@ typedef void(^pCallbackParam)(char *);
 
 @property (nonatomic, strong) UITextField *devNameField;
 
+@property (nonatomic, strong) UITextField *timeoutField;
+
 @property (nonatomic, strong) UITableView *devTabView;
 
 @property (nonatomic, strong) NSMutableArray *DevdataArray;
@@ -95,9 +97,17 @@ int DisconnectedCallback(const int status, const char *description)
         make.height.mas_equalTo(40);
     }];
     
+    [self.view addSubview:self.timeoutField];
+    [self.timeoutField mas_makeConstraints:^(MASConstraintMaker *make) {
+        make.top.mas_equalTo(self.devNameField.mas_bottom).offset(20);
+        make.left.mas_equalTo(self.view.mas_left).offset(0);
+        make.right.mas_equalTo(self.view.mas_right).offset(0);
+        make.height.mas_equalTo(40);
+    }];
+    
     [self.view addSubview:self.devTabView];
     [self.devTabView mas_makeConstraints:^(MASConstraintMaker *make) {
-        make.top.mas_equalTo(self.devNameField.mas_bottom).offset(20);
+        make.top.mas_equalTo(self.timeoutField.mas_bottom).offset(20);
         make.width.mas_equalTo(self.view.mas_width);
         make.right.mas_equalTo(self.view.mas_right);
         make.bottom.mas_equalTo(self.StartScanBtn.mas_top).offset(-10);
@@ -181,7 +191,7 @@ void *savedDevH;//device handle
     __block size_t nDeviceNameLen = 512*16;
     __block size_t nDevCount = 0;
     __block EnumContext DevContext = {0};
-    DevContext.timeout = 15;//scanning may found nothing if timeout is lower than 2 seconds. So the suggested timeout value should be larger than 2
+    DevContext.timeout = self.timeoutField.text.intValue;//scanning may found nothing if timeout is lower than 2 seconds. So the suggested timeout value should be larger than 2
     DevContext.enumCallBack = EnumCallback;
     NSString *devName = self.devNameField.text;
     strcpy(DevContext.searchName, [[devName stringByTrimmingCharactersInSet:NSCharacterSet.whitespaceCharacterSet] UTF8String]);
@@ -242,6 +252,22 @@ void *savedDevH;//device handle
         _devNameField.layer.cornerRadius =5;
     }
     return _devNameField;
+}
+
+- (UITextField *)timeoutField
+{
+    if (!_timeoutField) {
+        _timeoutField = [UITextField new];
+        _timeoutField.placeholder = @"Please input BLE scan timeout (seconds)";
+        _timeoutField.clearButtonMode = UITextFieldViewModeAlways;
+        _timeoutField.returnKeyType = UIReturnKeyDone;
+        _timeoutField.text = @"15";
+        _timeoutField.keyboardType = UIKeyboardTypeNumberPad;
+        _timeoutField.layer.borderColor = [UIColor greenColor].CGColor;
+        _timeoutField.layer.borderWidth = 1;
+        _timeoutField.layer.cornerRadius =5;
+    }
+    return _timeoutField;
 }
 
 - (UITableView *)devTabView
