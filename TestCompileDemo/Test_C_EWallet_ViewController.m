@@ -24,6 +24,7 @@
     NSString *pin;
     int pinResult;
     size_t imageCount;
+    int updateProgress;
 }
 
 @property (nonatomic, strong) UITextView *in_outTextView;
@@ -35,6 +36,8 @@
 @property (nonatomic, strong) UIButton *verifyPinBtn;
 
 @property (nonatomic, strong) UIButton *changePinBtn;
+
+@property (nonatomic, strong) UIButton *updateCOSBtn;
 
 @property (nonatomic, strong) UIButton *getFPListBtn;
 
@@ -94,6 +97,7 @@
 @property (nonatomic, strong) NSArray *walletCategoryList;
 @property (nonatomic, strong) NSArray *imageCategoryList;
 @property (nonatomic, strong) NSArray *categoryList;
+@property (nonatomic, strong) NSArray *allList;
 
 @property (nonatomic,strong)ToolInputView *inputView;
 
@@ -162,6 +166,12 @@ int PutSignState(void * const pCallbackContext, const int nSignState)
     return 0;
 }
 
+int UpdateCOSProgressCallback(void * const pCallbackContext, const size_t nProgress)
+{
+    [selfClass printLog:@"current update progress is %zu%%", nProgress];
+    return PAEW_RET_SUCCESS;
+}
+
 - (void)viewDidLoad {
     [super viewDidLoad];
     // Do any additional setup after loading the view.
@@ -171,12 +181,13 @@ int PutSignState(void * const pCallbackContext, const int nSignState)
     
     [self addSubViewAfterVDLoad];
     
-    _deviceCategoryList = [NSArray arrayWithObjects:_getDevInfoBtn, _initiPinBtn, _verifyPinBtn, _changePinBtn, _formatBtn, _clearScreenBtn, _freeContextBtn, _powerOffBtn, _writeSNBtn,nil];
+    _deviceCategoryList = [NSArray arrayWithObjects:_getDevInfoBtn, _initiPinBtn, _verifyPinBtn, _changePinBtn, _formatBtn, _clearScreenBtn, _freeContextBtn, _powerOffBtn, _writeSNBtn, _updateCOSBtn, nil];
     _fPrintCategoryList = [NSArray arrayWithObjects:_getFPListBtn, _enrollFPBtn, _verifyFPBtn, _deleteFPBtn, _calibrateFPBtn, _abortBtn, nil];
     _InitCategoryList = [NSArray arrayWithObjects:_genSeedBtn, _importMNEBtn, _recoverSeedBtn, nil];
     _walletCategoryList = [NSArray arrayWithObjects:_getAddressBtn, _getDeviceCheckCodeBtn, _ETHSignBtn, _EOSSignBtn, _CYBSignBtn,_signAbortBtn, nil];
     _imageCategoryList = [NSArray arrayWithObjects:_getImageListBtn, _setImageNameBtn, _getImageNameBtn, _setImageDataBtn, _showImageBtn, _setLogoImageBtn, nil];
     _categoryList = [NSArray arrayWithObjects:_deviceCategoryBtn, _fPrintCategoryBtn, _InitCategoryBtn, _walletCategoryBtn, _imageCategoryBtn, nil];
+    _allList = @[self.deviceCategoryList, self.fPrintCategoryList, self.InitCategoryList, self.walletCategoryList, self.imageCategoryList];
     
     [self categoryAction:_deviceCategoryBtn];
     
@@ -194,20 +205,10 @@ int PutSignState(void * const pCallbackContext, const int nSignState)
 
 - (void) showCategory:(NSArray *) categoryList
 {
-    for (UIButton* btn in _deviceCategoryList) {
-        btn.hidden = categoryList == _deviceCategoryList ? NO : YES;
-    }
-    for (UIButton* btn in _fPrintCategoryList) {
-        btn.hidden = categoryList == _fPrintCategoryList ? NO : YES;
-    }
-    for (UIButton* btn in _InitCategoryList) {
-        btn.hidden = categoryList == _InitCategoryList ? NO : YES;
-    }
-    for (UIButton* btn in _walletCategoryList) {
-        btn.hidden = categoryList == _walletCategoryList ? NO : YES;
-    }
-    for (UIButton* btn in _imageCategoryList) {
-        btn.hidden = categoryList == _imageCategoryList ? NO : YES;
+    for (NSArray *item in self.allList) {
+        for (UIButton *btn in item) {
+            btn.hidden = categoryList == item ? NO : YES;
+        }
     }
 }
 
@@ -266,15 +267,13 @@ int PutSignState(void * const pCallbackContext, const int nSignState)
     [self.view addSubview:self.getDevInfoBtn];
     [self.view addSubview:self.initiPinBtn];
     [self.view addSubview:self.verifyPinBtn];
-    
-        
-
     [self.view addSubview:self.changePinBtn];
     [self.view addSubview:self.formatBtn];
     [self.view addSubview:self.clearScreenBtn];
     [self.view addSubview:self.freeContextBtn];
     [self.view addSubview:self.powerOffBtn];
     [self.view addSubview:self.writeSNBtn];
+    [self.view addSubview:self.updateCOSBtn];
     
     [self.view addSubview:self.getFPListBtn];
     [self.view addSubview:self.enrollFPBtn];
@@ -318,6 +317,12 @@ int PutSignState(void * const pCallbackContext, const int nSignState)
         [cat1Arr3 mas_makeConstraints:^(MASConstraintMaker *make) {
             make.top.mas_equalTo(self.changePinBtn.mas_bottom).offset(20);
             make.height.mas_equalTo(30);
+        }];
+        [self.updateCOSBtn mas_makeConstraints:^(MASConstraintMaker *make) {
+            make.top.mas_equalTo(self.freeContextBtn.mas_bottom).offset(20);
+            make.width.mas_equalTo(self.freeContextBtn.mas_width);
+            make.height.mas_equalTo(30);
+            make.right.mas_equalTo(self.freeContextBtn.mas_right);
         }];
         
         NSArray *cat2Arr1 = @[self.getFPListBtn, self.enrollFPBtn, self.verifyFPBtn];
@@ -379,7 +384,7 @@ int PutSignState(void * const pCallbackContext, const int nSignState)
     
     [self.view addSubview:self.clearLogBtn];
     [self.clearLogBtn mas_makeConstraints:^(MASConstraintMaker *make) {
-        make.top.mas_equalTo(self.freeContextBtn.mas_bottom).offset(20);
+        make.top.mas_equalTo(self.updateCOSBtn.mas_bottom).offset(20);
         make.width.mas_equalTo(100);
         make.height.mas_equalTo(30);
         make.right.mas_equalTo(self.initiPinBtn.mas_right);
@@ -1938,10 +1943,10 @@ int PutSignState(void * const pCallbackContext, const int nSignState)
         return;
     }
     
-    [self printLog:@"ready to call PAEW_VerifyPIN"];
     dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
         int devIdx = 0;
         void *ppPAEWContext = (void*)self.savedDevice;
+        [self printLog:@"ready to call PAEW_VerifyPIN"];
         int initState = PAEW_VerifyPIN(ppPAEWContext, devIdx, [pin UTF8String]);
         if (initState == PAEW_RET_SUCCESS) {
             [self printLog:@"PAEW_VerifyPIN returns success"];
@@ -2001,6 +2006,57 @@ int PutSignState(void * const pCallbackContext, const int nSignState)
     });
 }
 
+- (UIButton *)updateCOSBtn
+{
+    if (!_updateCOSBtn) {
+        _updateCOSBtn = [UIButton buttonWithType:UIButtonTypeCustom];
+        [_updateCOSBtn setTitle:@"UpdateCOS" forState:UIControlStateNormal];
+        [_updateCOSBtn setTitleColor:[UIColor blueColor] forState:UIControlStateNormal];
+        _updateCOSBtn.titleLabel.font = [UIFont systemFontOfSize:15.0 weight:UIFontWeightMedium];
+        [_updateCOSBtn setBackgroundColor:[UIColor lightGrayColor]];
+        [_updateCOSBtn addTarget:self action:@selector(updateCOSBtnAction) forControlEvents:UIControlEventTouchUpInside];
+    }
+    return _updateCOSBtn;
+}
+
+- (void)updateCOSBtnAction
+{
+    dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
+        int devIdx = 0;
+        void *ppPAEWContext = (void*)self.savedDevice;
+        NSString *documentPath = [NSSearchPathForDirectoriesInDomains(NSDocumentDirectory, NSUserDomainMask, YES) objectAtIndex:0];
+        NSString *filePath = [documentPath stringByAppendingString:@"/WOOKONG_BIO_COS.bin"];
+        if (![[NSFileManager defaultManager] fileExistsAtPath:filePath]) {
+            [self printLog: @"WOOKONG_BIO_COS.bin does not exists"];
+            return;
+        }
+        NSData *data = [NSData dataWithContentsOfFile:filePath];
+        if (!data) {
+            [self printLog: @"WOOKONG_BIO_COS.bin read failed"];
+            return;
+        }
+        [self printLog:@"ready to call PAEW_ClearCOS"];
+        int iRtn = PAEW_ClearCOS(ppPAEWContext, devIdx);
+        if (iRtn == PAEW_RET_SUCCESS) {
+            [self printLog:@"PAEW_ClearCOS returns success"];
+        } else {
+            [self printLog:@"PAEW_ClearCOS returns failed: %@", [Utils errorCodeToString:iRtn]];
+        }
+        [self printLog:@"ready to call PAEW_UpdateCOS_Ex"];
+        self->updateProgress = 0;
+        NSDate *start = [NSDate new];
+        iRtn = PAEW_UpdateCOS_Ex(ppPAEWContext, devIdx, 0, [data bytes], data.length, UpdateCOSProgressCallback, nil);
+        NSTimeInterval timeNumber = start.timeIntervalSinceNow;
+        [self printLog:@"PAEW_UpdateCOS_Ex costs %@ senconds", timeNumber];
+        if (iRtn == PAEW_RET_SUCCESS) {
+            [self printLog:@"PAEW_UpdateCOS_Ex returns success"];
+        } else {
+            [self printLog:@"PAEW_UpdateCOS_Ex returns failed: %@", [Utils errorCodeToString:iRtn]];
+            return;
+        }
+    });
+}
+
 - (UIButton *)getDevInfoBtn
 {
     if (!_getDevInfoBtn) {
@@ -2021,30 +2077,29 @@ int PutSignState(void * const pCallbackContext, const int nSignState)
     } else {
         return;
     }
-    __block  size_t            i = 0;
-    __block PAEW_DevInfo    devInfo;
-    
-    __block uint32_t        nDevInfoType = 0;
-    
-    nDevInfoType = PAEW_DEV_INFOTYPE_COS_TYPE | PAEW_DEV_INFOTYPE_COS_VERSION | PAEW_DEV_INFOTYPE_SN | PAEW_DEV_INFOTYPE_CHAIN_TYPE | PAEW_DEV_INFOTYPE_PIN_STATE | PAEW_DEV_INFOTYPE_LIFECYCLE;
-    [self printLog:@"ready to call PAEW_GetDevInfo"];
     dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
         void *ppPAEWContext = (void*)self.savedDevice;
+        size_t            i = 0;
+        PAEW_DevInfo    devInfo;
+        uint32_t        nDevInfoType = 0;
+        nDevInfoType = PAEW_DEV_INFOTYPE_COS_TYPE | PAEW_DEV_INFOTYPE_COS_VERSION | PAEW_DEV_INFOTYPE_SN | PAEW_DEV_INFOTYPE_CHAIN_TYPE | PAEW_DEV_INFOTYPE_PIN_STATE | PAEW_DEV_INFOTYPE_LIFECYCLE;
+        [self printLog:@"ready to call PAEW_GetDevInfo"];
         int devInfoState = PAEW_GetDevInfo(ppPAEWContext, i, nDevInfoType, &devInfo);
-        dispatch_async(dispatch_get_main_queue(), ^{
-            if (devInfoState == PAEW_RET_SUCCESS) {
-                [self printLog:@"ucPINState: %02X", devInfo.ucPINState];
-                [self printLog:@"ucCOSType: %02X", devInfo.ucCOSType];
-                for (int i = 0; i < PAEW_DEV_INFO_SN_LEN; i++) {
-                    if (devInfo.pbSerialNumber[i] == 0xFF) {
-                        devInfo.pbSerialNumber[i] = 0;
-                    }
+        if (devInfoState == PAEW_RET_SUCCESS) {
+            [self printLog:@"ucPINState: %02X", devInfo.ucPINState];
+            [self printLog:@"ucCOSType: %02X", devInfo.ucCOSType];
+            for (int i = 0; i < PAEW_DEV_INFO_SN_LEN; i++) {
+                if (devInfo.pbSerialNumber[i] == 0xFF) {
+                    devInfo.pbSerialNumber[i] = 0;
                 }
-                [self printLog:@"SerialNumber: %@", [NSString stringWithUTF8String:(char *)devInfo.pbSerialNumber]];
-                [self printLog:@"PAEW_GetDevInfo returns Success"];
-            } else {
-                [self printLog:@"PAEW_GetDevInfo returns failed: %@", [Utils errorCodeToString:devInfoState]];
             }
+            [self printLog:@"SerialNumber: %@", [NSString stringWithUTF8String:(char *)devInfo.pbSerialNumber]];
+            [self printLog:@"PAEW_GetDevInfo returns Success"];
+        } else {
+            [self printLog:@"PAEW_GetDevInfo returns failed: %@", [Utils errorCodeToString:devInfoState]];
+        }
+        dispatch_async(dispatch_get_main_queue(), ^{
+            
         });
     });
 }
@@ -2067,12 +2122,9 @@ int PutSignState(void * const pCallbackContext, const int nSignState)
         _in_outTextView.scrollEnabled = YES;
         _in_outTextView.autoresizingMask = UIViewAutoresizingFlexibleHeight;
         _in_outTextView.editable = false;
-        
     }
     return _in_outTextView;
 }
-
-
 
 - (void)showMessageWithInt:(int)retValue
 {
@@ -2130,8 +2182,6 @@ int PutSignState(void * const pCallbackContext, const int nSignState)
     }
     self->pinResult = rtn;
     return rtn;
-    
-    
 }
 
 - (void)printLog:(NSString *)format, ...
@@ -2142,12 +2192,11 @@ int PutSignState(void * const pCallbackContext, const int nSignState)
     NSString *str = [[NSString alloc] initWithFormat:format arguments:args];
     va_end(args);
     if ([NSThread isMainThread]) {
-        
-        self.in_outTextView.text = [NSString stringWithFormat:@"%@[%zu]%@\n", self.in_outTextView.text, logCounter, str];
+        self.in_outTextView.text =  [self.in_outTextView.text stringByAppendingFormat:@"[%zu]%@\n", logCounter, str];
         [self.in_outTextView scrollRangeToVisible:NSMakeRange(self.in_outTextView.text.length, 1)];
     } else {
         dispatch_async(dispatch_get_main_queue(), ^{
-            self.in_outTextView.text = [NSString stringWithFormat:@"%@[%zu]%@\n", self.in_outTextView.text, self->logCounter, str];
+            self.in_outTextView.text = [self.in_outTextView.text stringByAppendingFormat:@"[%zu]%@\n", self->logCounter, str];
             [self.in_outTextView scrollRangeToVisible:NSMakeRange(self.in_outTextView.text.length, 1)];
         });
     }
