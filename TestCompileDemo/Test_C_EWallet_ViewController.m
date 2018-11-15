@@ -2039,6 +2039,8 @@ int UpdateCOSProgressCallback(void * const pCallbackContext, const size_t nProgr
         int iRtn = PAEW_ClearCOS(ppPAEWContext, devIdx);
         if (iRtn == PAEW_RET_SUCCESS) {
             [self printLog:@"PAEW_ClearCOS returns success"];
+            //MUST sleep 5 seconds at least after clear COS completed
+            [NSThread sleepForTimeInterval:5.0];
         } else {
             [self printLog:@"PAEW_ClearCOS returns failed: %@", [Utils errorCodeToString:iRtn]];
         }
@@ -2050,6 +2052,9 @@ int UpdateCOSProgressCallback(void * const pCallbackContext, const size_t nProgr
         [self printLog:@"PAEW_UpdateCOS_Ex costs %@ senconds", timeNumber];
         if (iRtn == PAEW_RET_SUCCESS) {
             [self printLog:@"PAEW_UpdateCOS_Ex returns success"];
+            //MUST sleep 5 seconds at least after update COS completed
+            [NSThread sleepForTimeInterval:5.0];
+            //MUST free context and reconnect to device otherwise all operations will be unavailable
         } else {
             [self printLog:@"PAEW_UpdateCOS_Ex returns failed: %@", [Utils errorCodeToString:iRtn]];
             return;
