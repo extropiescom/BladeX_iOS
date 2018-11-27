@@ -1606,6 +1606,20 @@ int UpdateCOSProgressCallback(void * const pCallbackContext, const size_t nProgr
         }
         [self printLog:@"PAEW_GenerateSeed_GetMnes returns success"];
         [self printLog:@"seed generated, mnemonics are: %s", pbMneWord];
+        NSString *mne = [NSString stringWithUTF8String:pbMneWord];
+        NSMutableString *mneStr = [NSMutableString new];
+        NSArray *mneArr = [mne componentsSeparatedByString:@" "];
+        for (int i = 0; i < mneArr.count; i++) {
+            [mneStr appendString:mneArr[i]];
+            //6 words in one line
+            if ((i % 6) == 5) {
+                if (i != (mneArr.count - 1)) {
+                    [mneStr appendString:@"\n"];
+                }
+            } else {
+                [mneStr appendString:@" "];
+            }
+        }
         //NSData *pbMneWordData = [NSData dataWithBytes:pbMneWord length:pnMneWordLen];
         //NSString *pbMneWordStr = [[NSString alloc] initWithData:pbMneWordData encoding:NSASCIIStringEncoding];
         NSMutableString *tmpStr = [NSMutableString new];
@@ -1613,25 +1627,23 @@ int UpdateCOSProgressCallback(void * const pCallbackContext, const size_t nProgr
             [tmpStr appendString:[NSString stringWithFormat: i == 0 ? @"word%lu" : @", word%lu", pnCheckIndex[i] + 1]];
         }
         [self printLog:@"please input the words exactly as this sequence with ONE WHITESPACE between each words: %@", tmpStr];
-        dispatch_async(dispatch_get_main_queue(), ^{
-            self->_inputView =[ToolInputView toolInputViewWithCallback:^(NSString *number) {
-                self->_inputView = nil;
-                if (number.length == 0) {
-                    return  ;
-                }
-                number = [number stringByTrimmingCharactersInSet:NSCharacterSet.whitespaceCharacterSet];
-                dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
-                    int devIdx = 0;
-                    int iRtn = PAEW_GenerateSeed_CheckMnes(ppPAEWContext, devIdx, (unsigned char *)[number UTF8String], number.length);
-                    if (iRtn != PAEW_RET_SUCCESS) {
-                        [self printLog:@"PAEW_GenerateSeed_CheckMnes returns failed: %@", [Utils errorCodeToString:iRtn]];
-                        return;
-                    }
-                    [self printLog:@"PAEW_GenerateSeed_CheckMnes returns success"];
-                });
-                
-            }];
-        });
+        
+        NSMutableString *input = [NSMutableString new];
+        for (int i = 0; i < pnCheckIndexCount; i++) {
+            [input appendString:mneArr[pnCheckIndex[i]]];
+            if (i != (pnCheckIndexCount - 1)) {
+                [input appendString:@" "];
+            }
+        }
+        
+         [self printLog:@"words to input are:: %@", input];
+        
+        iRtn = PAEW_GenerateSeed_CheckMnes(ppPAEWContext, devIdx, (unsigned char *)[input UTF8String], input.length);
+        if (iRtn != PAEW_RET_SUCCESS) {
+            [self printLog:@"PAEW_GenerateSeed_CheckMnes returns failed: %@", [Utils errorCodeToString:iRtn]];
+            return;
+        }
+        [self printLog:@"PAEW_GenerateSeed_CheckMnes returns success"];
     });
 }
 
