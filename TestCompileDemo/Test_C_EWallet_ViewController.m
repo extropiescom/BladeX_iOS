@@ -57,6 +57,14 @@
 
 @property (nonatomic, strong) UIButton *CYBSignBtn;
 
+@property (nonatomic, strong) UIButton *ETHSignNewBtn;
+
+@property (nonatomic, strong) UIButton *EOSSignNewBtn;
+
+@property (nonatomic, strong) UIButton *CYBSignNewBtn;
+
+@property (nonatomic, strong) UIButton *SwitchSignBtn;
+
 @property (nonatomic, strong) UIButton *importMNEBtn;
 
 @property (nonatomic, strong) UIButton *recoverSeedBtn;
@@ -102,6 +110,9 @@
 @property (nonatomic,strong)ToolInputView *inputView;
 
 @property (nonatomic, assign) BOOL abortBtnState;
+
+@property (nonatomic, assign) BOOL switchSignFlag;
+@property (nonatomic, assign) BOOL abortSignFlag;
 
 @property (nonatomic, strong) NSCondition *abortCondition;
 
@@ -151,14 +162,38 @@ int GetPin(void * const pCallbackContext, unsigned char * const pbPIN, size_t * 
 
 int PutSignState(void * const pCallbackContext, const int nSignState)
 {
+    //It is a normal phenomenon that nSignState may equals dev_state_invalid after PAEW_AbortSign was called successfully
+    //So at this time, PAEW_XXX_TXSign will also returs dev_state_invalid
+    //as this is a deprecated callback and being kept for only compatible reason
+    //we will NOT fix it any more
     if (nSignState != selfClass->lastSignState) {
         [selfClass printLog:[Utils errorCodeToString:nSignState]];
         selfClass->lastSignState = nSignState;
     }
     //here is a good place to canel sign function
-    if (selfClass.abortBtnState) {
+    if (selfClass.abortSignFlag) {
         [selfClass.abortCondition lock];
-        !selfClass.abortHandelBlock ? : selfClass.abortHandelBlock(YES);
+        
+        dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
+            int devIdx = 0;
+            uint64_t temp = selfClass.savedDevice;
+            void *ppPAEWContext = (void*)temp;
+            int iRtn = PAEW_RET_UNKNOWN_FAIL;
+            
+            selfClass.abortSignFlag = NO;
+            [selfClass printLog:@"ready to call PAEW_AbortSign"];
+            [selfClass.abortCondition lock];
+            iRtn = PAEW_AbortSign(ppPAEWContext, devIdx);
+            [selfClass.abortCondition signal];
+            [selfClass.abortCondition unlock];
+            
+            if (iRtn != PAEW_RET_SUCCESS) {
+                [selfClass printLog:@"PAEW_AbortSign returns failed %@", [Utils errorCodeToString:iRtn]];
+                return ;
+            }
+            
+            [selfClass printLog:@"PAEW_AbortSign returns success"];
+        });
         [selfClass.abortCondition wait];
         [selfClass.abortCondition unlock];
         selfClass.abortBtnState = NO;
@@ -184,7 +219,7 @@ int UpdateCOSProgressCallback(void * const pCallbackContext, const size_t nProgr
     _deviceCategoryList = [NSArray arrayWithObjects:_getDevInfoBtn, _initiPinBtn, _verifyPinBtn, _changePinBtn, _formatBtn, _clearScreenBtn, _freeContextBtn, _powerOffBtn, _writeSNBtn, _updateCOSBtn, nil];
     _fPrintCategoryList = [NSArray arrayWithObjects:_getFPListBtn, _enrollFPBtn, _verifyFPBtn, _deleteFPBtn, _calibrateFPBtn, _abortBtn, nil];
     _InitCategoryList = [NSArray arrayWithObjects:_genSeedBtn, _importMNEBtn, _recoverSeedBtn, nil];
-    _walletCategoryList = [NSArray arrayWithObjects:_getAddressBtn, _getDeviceCheckCodeBtn, _ETHSignBtn, _EOSSignBtn, _CYBSignBtn,_signAbortBtn, nil];
+    _walletCategoryList = [NSArray arrayWithObjects:_getAddressBtn, _getDeviceCheckCodeBtn, _ETHSignBtn, _EOSSignBtn, _CYBSignBtn,_signAbortBtn, _ETHSignNewBtn, _EOSSignNewBtn, _CYBSignNewBtn, _SwitchSignBtn, nil];
     _imageCategoryList = [NSArray arrayWithObjects:_getImageListBtn, _setImageNameBtn, _getImageNameBtn, _setImageDataBtn, _showImageBtn, _setLogoImageBtn, nil];
     _categoryList = [NSArray arrayWithObjects:_deviceCategoryBtn, _fPrintCategoryBtn, _InitCategoryBtn, _walletCategoryBtn, _imageCategoryBtn, nil];
     _allList = @[self.deviceCategoryList, self.fPrintCategoryList, self.InitCategoryList, self.walletCategoryList, self.imageCategoryList];
@@ -292,6 +327,10 @@ int UpdateCOSProgressCallback(void * const pCallbackContext, const size_t nProgr
     [self.view addSubview:self.ETHSignBtn];
     [self.view addSubview:self.EOSSignBtn];
     [self.view addSubview:self.CYBSignBtn];
+    [self.view addSubview:self.ETHSignNewBtn];
+    [self.view addSubview:self.EOSSignNewBtn];
+    [self.view addSubview:self.CYBSignNewBtn];
+    [self.view addSubview:self.SwitchSignBtn];
     
     [self.view addSubview:self.getImageListBtn];
     [self.view addSubview:self.setImageNameBtn];
@@ -300,85 +339,97 @@ int UpdateCOSProgressCallback(void * const pCallbackContext, const size_t nProgr
     [self.view addSubview:self.showImageBtn];
     [self.view addSubview:self.setLogoImageBtn];
     
-        NSArray *cat1Arr1 = @[self.getDevInfoBtn, self.initiPinBtn, self.verifyPinBtn];
-        [cat1Arr1 mas_distributeViewsAlongAxis:MASAxisTypeHorizontal withFixedSpacing:10 leadSpacing:30 tailSpacing:30];
-        [cat1Arr1 mas_makeConstraints:^(MASConstraintMaker *make) {
-            make.top.mas_equalTo(self.deviceCategoryBtn.mas_bottom).offset(20);
-            make.height.mas_equalTo(30);
-        }];
-        NSArray *cat1Arr2 = @[self.changePinBtn, self.formatBtn, self.clearScreenBtn];
-        [cat1Arr2 mas_distributeViewsAlongAxis:MASAxisTypeHorizontal withFixedSpacing:10 leadSpacing:30 tailSpacing:30];
-        [cat1Arr2 mas_makeConstraints:^(MASConstraintMaker *make) {
-            make.top.mas_equalTo(self.getDevInfoBtn.mas_bottom).offset(20);
-            make.height.mas_equalTo(30);
-        }];
-        NSArray *cat1Arr3 = @[self.freeContextBtn, self.powerOffBtn, self.writeSNBtn];
-        [cat1Arr3 mas_distributeViewsAlongAxis:MASAxisTypeHorizontal withFixedSpacing:10 leadSpacing:30 tailSpacing:30];
-        [cat1Arr3 mas_makeConstraints:^(MASConstraintMaker *make) {
-            make.top.mas_equalTo(self.changePinBtn.mas_bottom).offset(20);
-            make.height.mas_equalTo(30);
-        }];
-        [self.updateCOSBtn mas_makeConstraints:^(MASConstraintMaker *make) {
-            make.top.mas_equalTo(self.freeContextBtn.mas_bottom).offset(20);
-            make.width.mas_equalTo(self.freeContextBtn.mas_width);
-            make.height.mas_equalTo(30);
-            make.right.mas_equalTo(self.freeContextBtn.mas_right);
-        }];
-        
-        NSArray *cat2Arr1 = @[self.getFPListBtn, self.enrollFPBtn, self.verifyFPBtn];
-        [cat2Arr1 mas_distributeViewsAlongAxis:MASAxisTypeHorizontal withFixedSpacing:10 leadSpacing:30 tailSpacing:30];
-        [cat2Arr1 mas_makeConstraints:^(MASConstraintMaker *make) {
-            make.top.mas_equalTo(self.deviceCategoryBtn.mas_bottom).offset(20);
-            make.height.mas_equalTo(30);
-        }];
-        NSArray *cat2Arr2 = @[self.deleteFPBtn, self.calibrateFPBtn, self.abortBtn];
-        [cat2Arr2 mas_distributeViewsAlongAxis:MASAxisTypeHorizontal withFixedSpacing:10 leadSpacing:30 tailSpacing:30];
-        [cat2Arr2 mas_makeConstraints:^(MASConstraintMaker *make) {
-            make.top.mas_equalTo(self.getDevInfoBtn.mas_bottom).offset(20);
-            make.height.mas_equalTo(30);
-        }];
-        
-        
-        NSArray *cat3Arr1 = @[self.genSeedBtn, self.importMNEBtn, self.recoverSeedBtn];
-        [cat3Arr1 mas_distributeViewsAlongAxis:MASAxisTypeHorizontal withFixedSpacing:10 leadSpacing:30 tailSpacing:30];
-        [cat3Arr1 mas_makeConstraints:^(MASConstraintMaker *make) {
-            make.top.mas_equalTo(self.deviceCategoryBtn.mas_bottom).offset(20);
-            make.height.mas_equalTo(30);
-        }];
+    NSArray *cat1Arr1 = @[self.getDevInfoBtn, self.initiPinBtn, self.verifyPinBtn];
+    [cat1Arr1 mas_distributeViewsAlongAxis:MASAxisTypeHorizontal withFixedSpacing:10 leadSpacing:30 tailSpacing:30];
+    [cat1Arr1 mas_makeConstraints:^(MASConstraintMaker *make) {
+        make.top.mas_equalTo(self.deviceCategoryBtn.mas_bottom).offset(20);
+        make.height.mas_equalTo(30);
+    }];
+    NSArray *cat1Arr2 = @[self.changePinBtn, self.formatBtn, self.clearScreenBtn];
+    [cat1Arr2 mas_distributeViewsAlongAxis:MASAxisTypeHorizontal withFixedSpacing:10 leadSpacing:30 tailSpacing:30];
+    [cat1Arr2 mas_makeConstraints:^(MASConstraintMaker *make) {
+        make.top.mas_equalTo(self.getDevInfoBtn.mas_bottom).offset(20);
+        make.height.mas_equalTo(30);
+    }];
+    NSArray *cat1Arr3 = @[self.freeContextBtn, self.powerOffBtn, self.writeSNBtn];
+    [cat1Arr3 mas_distributeViewsAlongAxis:MASAxisTypeHorizontal withFixedSpacing:10 leadSpacing:30 tailSpacing:30];
+    [cat1Arr3 mas_makeConstraints:^(MASConstraintMaker *make) {
+        make.top.mas_equalTo(self.changePinBtn.mas_bottom).offset(20);
+        make.height.mas_equalTo(30);
+    }];
+    [self.updateCOSBtn mas_makeConstraints:^(MASConstraintMaker *make) {
+        make.top.mas_equalTo(self.freeContextBtn.mas_bottom).offset(20);
+        make.width.mas_equalTo(self.freeContextBtn.mas_width);
+        make.height.mas_equalTo(30);
+        make.right.mas_equalTo(self.freeContextBtn.mas_right);
+    }];
     
-//        NSArray *cat3Arr2 = @[self.recoverSeedBtn, self.recoverAddressBtn];
-//        [cat3Arr2 mas_distributeViewsAlongAxis:MASAxisTypeHorizontal withFixedSpacing:10 leadSpacing:30 tailSpacing:30];
-//        [cat3Arr2 mas_makeConstraints:^(MASConstraintMaker *make) {
-//            make.top.mas_equalTo(self.getDevInfoBtn.mas_bottom).offset(20);
-//            make.height.mas_equalTo(30);
-//        }];
+    NSArray *cat2Arr1 = @[self.getFPListBtn, self.enrollFPBtn, self.verifyFPBtn];
+    [cat2Arr1 mas_distributeViewsAlongAxis:MASAxisTypeHorizontal withFixedSpacing:10 leadSpacing:30 tailSpacing:30];
+    [cat2Arr1 mas_makeConstraints:^(MASConstraintMaker *make) {
+        make.top.mas_equalTo(self.deviceCategoryBtn.mas_bottom).offset(20);
+        make.height.mas_equalTo(30);
+    }];
+    NSArray *cat2Arr2 = @[self.deleteFPBtn, self.calibrateFPBtn, self.abortBtn];
+    [cat2Arr2 mas_distributeViewsAlongAxis:MASAxisTypeHorizontal withFixedSpacing:10 leadSpacing:30 tailSpacing:30];
+    [cat2Arr2 mas_makeConstraints:^(MASConstraintMaker *make) {
+        make.top.mas_equalTo(self.getDevInfoBtn.mas_bottom).offset(20);
+        make.height.mas_equalTo(30);
+    }];
     
-        
-        NSArray *cat4Arr1 = @[self.getAddressBtn, self.getDeviceCheckCodeBtn, self.signAbortBtn];
-        [cat4Arr1 mas_distributeViewsAlongAxis:MASAxisTypeHorizontal withFixedSpacing:10 leadSpacing:30 tailSpacing:30];
-        [cat4Arr1 mas_makeConstraints:^(MASConstraintMaker *make) {
-            make.top.mas_equalTo(self.deviceCategoryBtn.mas_bottom).offset(20);
-            make.height.mas_equalTo(30);
-        }];
-        NSArray *cat4Arr2 = @[self.ETHSignBtn, self.EOSSignBtn, self.CYBSignBtn];
-        [cat4Arr2 mas_distributeViewsAlongAxis:MASAxisTypeHorizontal withFixedSpacing:10 leadSpacing:30 tailSpacing:30];
-        [cat4Arr2 mas_makeConstraints:^(MASConstraintMaker *make) {
-            make.top.mas_equalTo(self.getDevInfoBtn.mas_bottom).offset(20);
-            make.height.mas_equalTo(30);
-        }];
     
-        NSArray *cat5Arr1 = @[self.getImageListBtn, self.setImageNameBtn, self.getImageNameBtn];
-        [cat5Arr1 mas_distributeViewsAlongAxis:MASAxisTypeHorizontal withFixedSpacing:10 leadSpacing:30 tailSpacing:30];
-        [cat5Arr1 mas_makeConstraints:^(MASConstraintMaker *make) {
-            make.top.mas_equalTo(self.deviceCategoryBtn.mas_bottom).offset(20);
-            make.height.mas_equalTo(30);
-        }];
-        NSArray *cat5Arr2 = @[self.setImageDataBtn, self.showImageBtn, self.setLogoImageBtn];
-        [cat5Arr2 mas_distributeViewsAlongAxis:MASAxisTypeHorizontal withFixedSpacing:10 leadSpacing:30 tailSpacing:30];
-        [cat5Arr2 mas_makeConstraints:^(MASConstraintMaker *make) {
-            make.top.mas_equalTo(self.getDevInfoBtn.mas_bottom).offset(20);
-            make.height.mas_equalTo(30);
-        }];
+    NSArray *cat3Arr1 = @[self.genSeedBtn, self.importMNEBtn, self.recoverSeedBtn];
+    [cat3Arr1 mas_distributeViewsAlongAxis:MASAxisTypeHorizontal withFixedSpacing:10 leadSpacing:30 tailSpacing:30];
+    [cat3Arr1 mas_makeConstraints:^(MASConstraintMaker *make) {
+        make.top.mas_equalTo(self.deviceCategoryBtn.mas_bottom).offset(20);
+        make.height.mas_equalTo(30);
+    }];
+    
+    //        NSArray *cat3Arr2 = @[self.recoverSeedBtn, self.recoverAddressBtn];
+    //        [cat3Arr2 mas_distributeViewsAlongAxis:MASAxisTypeHorizontal withFixedSpacing:10 leadSpacing:30 tailSpacing:30];
+    //        [cat3Arr2 mas_makeConstraints:^(MASConstraintMaker *make) {
+    //            make.top.mas_equalTo(self.getDevInfoBtn.mas_bottom).offset(20);
+    //            make.height.mas_equalTo(30);
+    //        }];
+    
+    
+    NSArray *cat4Arr1 = @[self.getAddressBtn, self.getDeviceCheckCodeBtn, self.signAbortBtn];
+    [cat4Arr1 mas_distributeViewsAlongAxis:MASAxisTypeHorizontal withFixedSpacing:10 leadSpacing:30 tailSpacing:30];
+    [cat4Arr1 mas_makeConstraints:^(MASConstraintMaker *make) {
+        make.top.mas_equalTo(self.deviceCategoryBtn.mas_bottom).offset(20);
+        make.height.mas_equalTo(30);
+    }];
+    NSArray *cat4Arr2 = @[self.ETHSignBtn, self.EOSSignBtn, self.CYBSignBtn];
+    [cat4Arr2 mas_distributeViewsAlongAxis:MASAxisTypeHorizontal withFixedSpacing:10 leadSpacing:30 tailSpacing:30];
+    [cat4Arr2 mas_makeConstraints:^(MASConstraintMaker *make) {
+        make.top.mas_equalTo(self.getDevInfoBtn.mas_bottom).offset(20);
+        make.height.mas_equalTo(30);
+    }];
+    NSArray *cat4Arr3 = @[self.ETHSignNewBtn, self.EOSSignNewBtn, self.CYBSignNewBtn];
+    [cat4Arr3 mas_distributeViewsAlongAxis:MASAxisTypeHorizontal withFixedSpacing:10 leadSpacing:30 tailSpacing:30];
+    [cat4Arr3 mas_makeConstraints:^(MASConstraintMaker *make) {
+        make.top.mas_equalTo(self.ETHSignBtn.mas_bottom).offset(20);
+        make.height.mas_equalTo(30);
+    }];
+    [self.SwitchSignBtn mas_makeConstraints:^(MASConstraintMaker *make) {
+        make.top.mas_equalTo(self.ETHSignNewBtn.mas_bottom).offset(20);
+        make.height.mas_equalTo(30);
+        make.right.mas_equalTo(self.CYBSignNewBtn.mas_right);
+        make.left.mas_equalTo(self.ETHSignNewBtn.mas_left);
+    }];
+    
+    NSArray *cat5Arr1 = @[self.getImageListBtn, self.setImageNameBtn, self.getImageNameBtn];
+    [cat5Arr1 mas_distributeViewsAlongAxis:MASAxisTypeHorizontal withFixedSpacing:10 leadSpacing:30 tailSpacing:30];
+    [cat5Arr1 mas_makeConstraints:^(MASConstraintMaker *make) {
+        make.top.mas_equalTo(self.deviceCategoryBtn.mas_bottom).offset(20);
+        make.height.mas_equalTo(30);
+    }];
+    NSArray *cat5Arr2 = @[self.setImageDataBtn, self.showImageBtn, self.setLogoImageBtn];
+    [cat5Arr2 mas_distributeViewsAlongAxis:MASAxisTypeHorizontal withFixedSpacing:10 leadSpacing:30 tailSpacing:30];
+    [cat5Arr2 mas_makeConstraints:^(MASConstraintMaker *make) {
+        make.top.mas_equalTo(self.getDevInfoBtn.mas_bottom).offset(20);
+        make.height.mas_equalTo(30);
+    }];
     
     
     
@@ -493,11 +544,11 @@ int UpdateCOSProgressCallback(void * const pCallbackContext, const size_t nProgr
 {
     if (!_signAbortBtn) {
         _signAbortBtn = [UIButton buttonWithType:UIButtonTypeCustom];
-        [_signAbortBtn setTitle:@"Abort" forState:UIControlStateNormal];
+        [_signAbortBtn setTitle:@"AbortSign" forState:UIControlStateNormal];
         [_signAbortBtn setTitleColor:[UIColor blueColor] forState:UIControlStateNormal];
         _signAbortBtn.titleLabel.font = [UIFont systemFontOfSize:15.0 weight:UIFontWeightMedium];
         [_signAbortBtn setBackgroundColor:[UIColor lightGrayColor]];
-        [_signAbortBtn addTarget:self action:@selector(abortBtnAction) forControlEvents:UIControlEventTouchUpInside];
+        [_signAbortBtn addTarget:self action:@selector(signAbortBtnAction) forControlEvents:UIControlEventTouchUpInside];
     }
     return _signAbortBtn;
 }
@@ -968,8 +1019,8 @@ int UpdateCOSProgressCallback(void * const pCallbackContext, const size_t nProgr
             
             strongSelf.abortBtnState = NO;
             [strongSelf printLog:@"ready to call PAEW_AbortFP"];
-            iRtn = PAEW_AbortFP(ppPAEWContext, devIdx);
             [strongSelf.abortCondition lock];
+            iRtn = PAEW_AbortFP(ppPAEWContext, devIdx);
             [strongSelf.abortCondition signal];
             [strongSelf.abortCondition unlock];
             
@@ -1380,6 +1431,19 @@ int UpdateCOSProgressCallback(void * const pCallbackContext, const size_t nProgr
     
 }
 
+- (UIButton *)ETHSignBtn
+{
+    if (!_ETHSignBtn) {
+        _ETHSignBtn = [UIButton buttonWithType:UIButtonTypeCustom];
+        [_ETHSignBtn setTitle:@"ETHSign" forState:UIControlStateNormal];
+        [_ETHSignBtn setTitleColor:[UIColor blueColor] forState:UIControlStateNormal];
+        _ETHSignBtn.titleLabel.font = [UIFont systemFontOfSize:15.0 weight:UIFontWeightMedium];
+        [_ETHSignBtn setBackgroundColor:[UIColor lightGrayColor]];
+        [_ETHSignBtn addTarget:self action:@selector(ETHSignBtnAction) forControlEvents:UIControlEventTouchUpInside];
+    }
+    return _ETHSignBtn;
+}
+
 - (UIButton *)EOSSignBtn
 {
     if (!_EOSSignBtn) {
@@ -1406,6 +1470,487 @@ int UpdateCOSProgressCallback(void * const pCallbackContext, const size_t nProgr
     return _CYBSignBtn;
 }
 
+- (UIButton *)ETHSignNewBtn
+{
+    if (!_ETHSignNewBtn) {
+        _ETHSignNewBtn = [UIButton buttonWithType:UIButtonTypeCustom];
+        [_ETHSignNewBtn setTitle:@"ETHSignNew" forState:UIControlStateNormal];
+        [_ETHSignNewBtn setTitleColor:[UIColor blueColor] forState:UIControlStateNormal];
+        _ETHSignNewBtn.titleLabel.font = [UIFont systemFontOfSize:15.0 weight:UIFontWeightMedium];
+        [_ETHSignNewBtn setBackgroundColor:[UIColor lightGrayColor]];
+        [_ETHSignNewBtn addTarget:self action:@selector(ETHSignNewBtnAction) forControlEvents:UIControlEventTouchUpInside];
+    }
+    return _ETHSignNewBtn;
+}
+
+- (UIButton *)EOSSignNewBtn
+{
+    if (!_EOSSignNewBtn) {
+        _EOSSignNewBtn = [UIButton buttonWithType:UIButtonTypeCustom];
+        [_EOSSignNewBtn setTitle:@"EOSSignNew" forState:UIControlStateNormal];
+        [_EOSSignNewBtn setTitleColor:[UIColor blueColor] forState:UIControlStateNormal];
+        _EOSSignNewBtn.titleLabel.font = [UIFont systemFontOfSize:15.0 weight:UIFontWeightMedium];
+        [_EOSSignNewBtn setBackgroundColor:[UIColor lightGrayColor]];
+        [_EOSSignNewBtn addTarget:self action:@selector(EOSSignNewBtnAction) forControlEvents:UIControlEventTouchUpInside];
+    }
+    return _EOSSignNewBtn;
+}
+
+- (UIButton *)CYBSignNewBtn
+{
+    if (!_CYBSignNewBtn) {
+        _CYBSignNewBtn = [UIButton buttonWithType:UIButtonTypeCustom];
+        [_CYBSignNewBtn setTitle:@"CYBSignNew" forState:UIControlStateNormal];
+        [_CYBSignNewBtn setTitleColor:[UIColor blueColor] forState:UIControlStateNormal];
+        _CYBSignNewBtn.titleLabel.font = [UIFont systemFontOfSize:15.0 weight:UIFontWeightMedium];
+        [_CYBSignNewBtn setBackgroundColor:[UIColor lightGrayColor]];
+        [_CYBSignNewBtn addTarget:self action:@selector(CYBSignNewBtnAction) forControlEvents:UIControlEventTouchUpInside];
+    }
+    return _CYBSignNewBtn;
+}
+
+- (UIButton *)SwitchSignBtn
+{
+    if (!_SwitchSignBtn) {
+        _SwitchSignBtn = [UIButton buttonWithType:UIButtonTypeCustom];
+        [_SwitchSignBtn setTitle:@"SwitchSignMethod" forState:UIControlStateNormal];
+        [_SwitchSignBtn setTitleColor:[UIColor blueColor] forState:UIControlStateNormal];
+        _SwitchSignBtn.titleLabel.font = [UIFont systemFontOfSize:15.0 weight:UIFontWeightMedium];
+        [_SwitchSignBtn setBackgroundColor:[UIColor lightGrayColor]];
+        [_SwitchSignBtn addTarget:self action:@selector(SwitchSignBtnAction) forControlEvents:UIControlEventTouchUpInside];
+    }
+    return _SwitchSignBtn;
+}
+
+- (void)SwitchSignBtnAction
+{
+    self.switchSignFlag = YES;
+}
+
+- (void)signAbortBtnAction
+{
+    self.abortSignFlag = YES;
+}
+
+- (void)ETHSignNewBtnAction
+{
+    self.switchSignFlag = NO;
+    self.abortSignFlag = NO;
+    dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
+        int devIdx = 0;
+        void *ppPAEWContext = (void*)self.savedDevice;
+        int iRtn = PAEW_RET_UNKNOWN_FAIL;
+        unsigned char nCoinType = PAEW_COIN_TYPE_ETH;
+        uint32_t puiDerivePath[] = {0, 0x8000002c, 0x8000003c, 0x80000000, 0x00000000, 0x00000000};
+        [self printLog:@"ready for eth signature"];
+        iRtn = PAEW_DeriveTradeAddress(ppPAEWContext, devIdx, nCoinType, puiDerivePath, sizeof(puiDerivePath)/sizeof(puiDerivePath[0]));
+        if (iRtn != PAEW_RET_SUCCESS) {
+            [self printLog:@"eth signature failed due to PAEW_DeriveTradeAddress returns : %@", [Utils errorCodeToString:iRtn]];
+            return ;
+        }
+        
+        unsigned char transaction[] = { 0xec,  0x09,  0x85,  0x04,  0xa8,  0x17,  0xc8,  0x00,  0x82,  0x52,  0x08,  0x94,  0x35,  0x35,  0x35,  0x35,  0x35,  0x35,  0x35,  0x35,  0x35,  0x35,  0x35,  0x35,  0x35,  0x35,  0x35,  0x35,  0x35,  0x35,  0x35,  0x35,  0x88,  0x0d,  0xe0,  0xb6,  0xb3,  0xa7,  0x64,  0x00,  0x00,  0x80,  0x01,  0x80,  0x80};
+        unsigned char pbTXSig[1024] = {0};
+        size_t pnTXSigLen = 1024;
+        BOOL pinVerified = NO;
+        unsigned char authType = PAEW_SIGN_AUTH_TYPE_FP;
+        
+        iRtn = PAEW_ETH_SetTX(ppPAEWContext, devIdx, transaction, sizeof(transaction));
+        if (iRtn != PAEW_RET_SUCCESS) {
+            [self printLog:@"eth signature failed due to PAEW_CYB_SetTX returns :", [Utils errorCodeToString:iRtn]];
+            return;
+        }
+        
+        int lastResult = PAEW_RET_SUCCESS;
+        unsigned char lastAuthType = authType;
+        BOOL needAbort = NO;
+        [self printLog:@"default auth type: %@", (authType == PAEW_SIGN_AUTH_TYPE_FP ? @"Fingerprint" : @"PIN")];
+        while (YES) {
+            //check abort sign flag
+            if (self.abortSignFlag) {
+                self.abortSignFlag = NO;
+                iRtn = PAEW_AbortSign(ppPAEWContext, devIdx);
+                if (iRtn == PAEW_RET_SUCCESS) {
+                    [self printLog: @"eth signature abort"];
+                    needAbort = false;
+                    break;
+                } else {
+                    [self printLog:@"PAEW_AbortSign returns failed: %@", [Utils errorCodeToString:iRtn]];
+                    needAbort = true;
+                    break;
+                }
+            }
+            
+            //check switch sign flag
+            if (self.switchSignFlag) {
+                self.switchSignFlag = false;
+                if (authType == PAEW_SIGN_AUTH_TYPE_FP) {
+                    authType = PAEW_SIGN_AUTH_TYPE_PIN;
+                } else if (authType == PAEW_SIGN_AUTH_TYPE_PIN) {
+                    authType = PAEW_SIGN_AUTH_TYPE_FP;
+                }
+                //clear last getsign result
+                lastResult = PAEW_RET_SUCCESS;
+                pinVerified = NO;
+            }
+            if (lastAuthType != authType) {
+                if (authType != PAEW_SIGN_AUTH_TYPE_FP && authType != PAEW_SIGN_AUTH_TYPE_PIN)  {
+                    int type = [PickerViewAlert doModal:self title:@"Please select verify method" dataSouce:@[@"Fingerprint", @"PIN"]];
+                    if (type < 0) {
+                        [self printLog:@"user cancelled"];
+                        needAbort = true;
+                        break;
+                    }
+                    authType = type == 0 ? PAEW_SIGN_AUTH_TYPE_FP : PAEW_SIGN_AUTH_TYPE_PIN;
+                }
+                lastAuthType = authType;
+                [self printLog:@"auth type changed, current auth type: %@", (authType == PAEW_SIGN_AUTH_TYPE_FP ? @"Fingerprint" : @"PIN")];
+                iRtn = PAEW_SwitchSign(ppPAEWContext, devIdx);
+            }
+            //if auth type is PIN, PAEW_VerifySignPIN must be called
+            if ((authType == PAEW_SIGN_AUTH_TYPE_PIN) && (!pinVerified)) {
+                NSString *pin = [TextFieldViewAlert doModal:self title:@"Please input PIN" message:@"Please input your PIN to continue" isPassword:YES minLengthRequired:6 keyboardType:UIKeyboardTypeNumberPad];
+                if (!pin) {
+                    authType = PAEW_SIGN_AUTH_TYPE_FP;
+                    pinVerified = NO;
+                    [self printLog:@"user canceled PIN input"];
+                    continue;
+                }
+                iRtn = PAEW_VerifySignPIN(ppPAEWContext, devIdx, [pin cStringUsingEncoding:NSUTF8StringEncoding]);
+                if (iRtn != PAEW_RET_SUCCESS) {
+                    pinVerified = false;
+                    [self printLog:@"PAEW_VerifySignPIN returns failed: %@", [Utils errorCodeToString:iRtn]];
+                    continue;
+                }
+                pinVerified = YES;
+            }
+            //after all, loop to get sign result
+            iRtn = PAEW_ETH_GetSignResult(ppPAEWContext, devIdx, authType, pbTXSig, &pnTXSigLen);
+            
+            if (iRtn == PAEW_RET_SUCCESS) {
+                [self printLog:@"eth signature succeeded with signature: %@", [Utils bytesToHexString:pbTXSig length:pnTXSigLen]];
+                needAbort = false;
+                break;
+            } else if (lastResult != iRtn) {
+                [self printLog:@"%@ signature status : %@", (authType == PAEW_SIGN_AUTH_TYPE_FP ? @"Fingerprint" : @"PIN"), [Utils errorCodeToString:iRtn]];
+                lastResult = iRtn;
+                //notify here: loop for pin and loop for fp have different loop conditions
+                if (authType == PAEW_SIGN_AUTH_TYPE_FP) {
+                    if (lastResult == PAEW_RET_NO_VERIFY_COUNT) {
+                        //like wechat, if fp verify count ran out, switch to pin verify
+                        self.switchSignFlag = true;
+                        continue;
+                    }
+                    if (lastResult != PAEW_RET_DEV_WAITING
+                        && lastResult != PAEW_RET_DEV_FP_COMMON_ERROR
+                        && lastResult != PAEW_RET_DEV_FP_NO_FINGER
+                        && lastResult != PAEW_RET_DEV_FP_NOT_FULL_FINGER) {
+                        [self printLog:@"eth signature failed" ];
+                        needAbort = true;
+                        break;
+                    }
+                } else if (authType == PAEW_SIGN_AUTH_TYPE_PIN) {
+                    if (lastResult != PAEW_RET_DEV_WAITING) {
+                        [self printLog:@"eth signature failed" ];
+                        needAbort = true;
+                        break;
+                    }
+                }
+            }
+            
+            //finally, call abort if PAEW_ETH_GetSignResult returns non PAEW_RET_SUCCESS values
+            if (needAbort) {
+                iRtn = PAEW_AbortSign(ppPAEWContext, devIdx);
+            }
+        }
+    });
+}
+
+- (void)EOSSignNewBtnAction
+{
+    self.switchSignFlag = NO;
+    self.abortSignFlag = NO;
+    dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
+        int devIdx = 0;
+        void *ppPAEWContext = (void*)self.savedDevice;
+        int iRtn = PAEW_RET_UNKNOWN_FAIL;
+        unsigned char nCoinType = PAEW_COIN_TYPE_EOS;
+        uint32_t puiDerivePath[] = {0, 0x8000002C, 0x800000c2, 0x80000000, 0x00000000, 0x00000000};
+        [self printLog:@"ready for eos signature"];
+        iRtn = PAEW_DeriveTradeAddress(ppPAEWContext, devIdx, nCoinType, puiDerivePath, sizeof(puiDerivePath)/sizeof(puiDerivePath[0]));
+        if (iRtn != PAEW_RET_SUCCESS) {
+            [self printLog:@"eos signature failed due to PAEW_DeriveTradeAddress returns : %@", [Utils errorCodeToString:iRtn]];
+            return ;
+        }
+        
+        unsigned char transaction[] = {0x74, 0x09, 0x70, 0xd9, 0xff, 0x01, 0xb5, 0x04, 0x63, 0x2f, 0xed, 0xe1, 0xad, 0xc3, 0xdf, 0xe5, 0x59, 0x90, 0x41, 0x5e, 0x4f, 0xde, 0x01, 0xe1, 0xb8, 0xf3, 0x15, 0xf8, 0x13, 0x6f, 0x47, 0x6c, 0x14, 0xc2, 0x67, 0x5b, 0x01, 0x24, 0x5f, 0x70, 0x5d, 0xd7, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0xa6, 0x82, 0x34, 0x03, 0xea, 0x30, 0x55, 0x00, 0x00, 0x00, 0x57, 0x2d, 0x3c, 0xcd, 0xcd, 0x01, 0x20, 0x29, 0xc2, 0xca, 0x55, 0x7a, 0x73, 0x57, 0x00, 0x00, 0x00, 0x00, 0xa8, 0xed, 0x32, 0x32, 0x21, 0x20, 0x29, 0xc2, 0xca, 0x55, 0x7a, 0x73, 0x57, 0x90, 0x55, 0x8c, 0x86, 0x77, 0x95, 0x4c, 0x3c, 0x10, 0x27, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x04, 0x45, 0x4f, 0x53, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
+        unsigned char pbTXSig[1024] = {0};
+        size_t pnTXSigLen = 1024;
+        BOOL pinVerified = NO;
+        unsigned char authType = PAEW_SIGN_AUTH_TYPE_FP;
+        
+        iRtn = PAEW_EOS_SetTX(ppPAEWContext, devIdx, transaction, sizeof(transaction));
+        if (iRtn != PAEW_RET_SUCCESS) {
+            [self printLog:@"eos signature failed due to PAEW_EOS_SetTX returns :", [Utils errorCodeToString:iRtn]];
+            return;
+        }
+        
+        int lastResult = PAEW_RET_SUCCESS;
+        unsigned char lastAuthType = authType;
+        BOOL needAbort = NO;
+        [self printLog:@"default auth type: %@", (authType == PAEW_SIGN_AUTH_TYPE_FP ? @"Fingerprint" : @"PIN")];
+        while (YES) {
+            //check abort sign flag
+            if (self.abortSignFlag) {
+                self.abortSignFlag = NO;
+                iRtn = PAEW_AbortSign(ppPAEWContext, devIdx);
+                if (iRtn == PAEW_RET_SUCCESS) {
+                    [self printLog: @"eos signature abort"];
+                    needAbort = false;
+                    break;
+                } else {
+                    [self printLog:@"PAEW_AbortSign returns failed: %@", [Utils errorCodeToString:iRtn]];
+                    needAbort = true;
+                    break;
+                }
+            }
+            
+            //check switch sign flag
+            if (self.switchSignFlag) {
+                self.switchSignFlag = false;
+                if (authType == PAEW_SIGN_AUTH_TYPE_FP) {
+                    authType = PAEW_SIGN_AUTH_TYPE_PIN;
+                } else if (authType == PAEW_SIGN_AUTH_TYPE_PIN) {
+                    authType = PAEW_SIGN_AUTH_TYPE_FP;
+                }
+                //clear last getsign result
+                lastResult = PAEW_RET_SUCCESS;
+                pinVerified = NO;
+            }
+            if (lastAuthType != authType) {
+                if (authType != PAEW_SIGN_AUTH_TYPE_FP && authType != PAEW_SIGN_AUTH_TYPE_PIN)  {
+                    int type = [PickerViewAlert doModal:self title:@"Please select verify method" dataSouce:@[@"Fingerprint", @"PIN"]];
+                    if (type < 0) {
+                        [self printLog:@"user cancelled"];
+                        needAbort = true;
+                        break;
+                    }
+                    authType = type == 0 ? PAEW_SIGN_AUTH_TYPE_FP : PAEW_SIGN_AUTH_TYPE_PIN;
+                }
+                lastAuthType = authType;
+                [self printLog:@"auth type changed, current auth type: %@", (authType == PAEW_SIGN_AUTH_TYPE_FP ? @"Fingerprint" : @"PIN")];
+                iRtn = PAEW_SwitchSign(ppPAEWContext, devIdx);
+            }
+            //if auth type is PIN, PAEW_VerifySignPIN must be called
+            if ((authType == PAEW_SIGN_AUTH_TYPE_PIN) && (!pinVerified)) {
+                NSString *pin = [TextFieldViewAlert doModal:self title:@"Please input PIN" message:@"Please input your PIN to continue" isPassword:YES minLengthRequired:6 keyboardType:UIKeyboardTypeNumberPad];
+                if (!pin) {
+                    authType = PAEW_SIGN_AUTH_TYPE_FP;
+                    pinVerified = NO;
+                    [self printLog:@"user canceled PIN input"];
+                    continue;
+                }
+                iRtn = PAEW_VerifySignPIN(ppPAEWContext, devIdx, [pin cStringUsingEncoding:NSUTF8StringEncoding]);
+                if (iRtn != PAEW_RET_SUCCESS) {
+                    pinVerified = false;
+                    [self printLog:@"PAEW_VerifySignPIN returns failed: %@", [Utils errorCodeToString:iRtn]];
+                    continue;
+                }
+                pinVerified = YES;
+            }
+            //after all, loop to get sign result
+            iRtn = PAEW_EOS_GetSignResult(ppPAEWContext, devIdx, authType, pbTXSig, &pnTXSigLen);
+            
+            if (iRtn == PAEW_RET_SUCCESS) {
+                [self printLog:@"eos signature succeeded with signature: %s", pbTXSig];
+                needAbort = false;
+                break;
+            } else if (lastResult != iRtn) {
+                [self printLog:@"%@ signature status : %@", (authType == PAEW_SIGN_AUTH_TYPE_FP ? @"Fingerprint" : @"PIN"), [Utils errorCodeToString:iRtn]];
+                lastResult = iRtn;
+                //notify here: loop for pin and loop for fp have different loop conditions
+                if (authType == PAEW_SIGN_AUTH_TYPE_FP) {
+                    if (lastResult == PAEW_RET_NO_VERIFY_COUNT) {
+                        //like wechat, if fp verify count ran out, switch to pin verify
+                        self.switchSignFlag = true;
+                        continue;
+                    }
+                    if (lastResult != PAEW_RET_DEV_WAITING
+                        && lastResult != PAEW_RET_DEV_FP_COMMON_ERROR
+                        && lastResult != PAEW_RET_DEV_FP_NO_FINGER
+                        && lastResult != PAEW_RET_DEV_FP_NOT_FULL_FINGER) {
+                        [self printLog:@"eos signature failed" ];
+                        needAbort = true;
+                        break;
+                    }
+                } else if (authType == PAEW_SIGN_AUTH_TYPE_PIN) {
+                    if (lastResult != PAEW_RET_DEV_WAITING) {
+                        [self printLog:@"eos signature failed" ];
+                        needAbort = true;
+                        break;
+                    }
+                }
+            }
+            
+            //finally, call abort if PAEW_EOS_GetSignResult returns non PAEW_RET_SUCCESS values
+            if (needAbort) {
+                iRtn = PAEW_AbortSign(ppPAEWContext, devIdx);
+            }
+        }
+    });
+}
+
+- (void)CYBSignNewBtnAction
+{
+    self.switchSignFlag = NO;
+    self.abortSignFlag = NO;
+    dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
+        int devIdx = 0;
+        void *ppPAEWContext = (void*)self.savedDevice;
+        int iRtn = PAEW_RET_UNKNOWN_FAIL;
+        unsigned char nCoinType = PAEW_COIN_TYPE_CYB;
+        uint32_t puiDerivePath[] = {0, 0, 1, 0x00000080, 0x00000000, 0x00000000};
+        [self printLog:@"ready for cyb signature"];
+        iRtn = PAEW_DeriveTradeAddress(ppPAEWContext, devIdx, nCoinType, puiDerivePath, sizeof(puiDerivePath)/sizeof(puiDerivePath[0]));
+        if (iRtn != PAEW_RET_SUCCESS) {
+            [self printLog:@"cyb signature failed due to PAEW_DeriveTradeAddress returns : %@", [Utils errorCodeToString:iRtn]];
+            return ;
+        }
+        
+        unsigned char transaction[] = {0x26,0xe9,
+            0xbf,0x22,0x06,0xa1,
+            0xd1,0x5c,0x7e,0x5b,
+            0x01,0x00,
+            0xe8,0x03,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
+            0x80,0xaf,0x02,
+            0x80,0xaf,0x02,
+            0x0a,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
+            0x00,
+            0x01,0x04,
+            0x0a,0x7a,0x68,0x61,0x6e,0x67,0x73,0x79,0x31,0x33,0x33,
+            0x03,0x43,0x59,0x42,
+            0x03,0x43,0x59,0x42,
+            0x05,
+            0x05,
+            0x00};
+        unsigned char pbTXSig[1024] = {0};
+        size_t pnTXSigLen = 1024;
+        BOOL pinVerified = NO;
+        unsigned char authType = PAEW_SIGN_AUTH_TYPE_FP;
+        
+        iRtn = PAEW_CYB_SetTX(ppPAEWContext, devIdx, transaction, sizeof(transaction));
+        if (iRtn != PAEW_RET_SUCCESS) {
+            [self printLog:@"cyb signature failed due to PAEW_CYB_SetTX returns :", [Utils errorCodeToString:iRtn]];
+            return;
+        }
+        
+        int lastResult = PAEW_RET_SUCCESS;
+        unsigned char lastAuthType = authType;
+        BOOL needAbort = NO;
+        [self printLog:@"default auth type: %@", (authType == PAEW_SIGN_AUTH_TYPE_FP ? @"Fingerprint" : @"PIN")];
+        while (YES) {
+            //check abort sign flag
+            if (self.abortSignFlag) {
+                self.abortSignFlag = NO;
+                iRtn = PAEW_AbortSign(ppPAEWContext, devIdx);
+                if (iRtn == PAEW_RET_SUCCESS) {
+                    [self printLog: @"cyb signature abort"];
+                    needAbort = false;
+                    break;
+                } else {
+                    [self printLog:@"PAEW_AbortSign returns failed: %@", [Utils errorCodeToString:iRtn]];
+                    needAbort = true;
+                    break;
+                }
+            }
+            
+            //check switch sign flag
+            if (self.switchSignFlag) {
+                self.switchSignFlag = false;
+                if (authType == PAEW_SIGN_AUTH_TYPE_FP) {
+                    authType = PAEW_SIGN_AUTH_TYPE_PIN;
+                } else if (authType == PAEW_SIGN_AUTH_TYPE_PIN) {
+                    authType = PAEW_SIGN_AUTH_TYPE_FP;
+                }
+                //clear last getsign result
+                lastResult = PAEW_RET_SUCCESS;
+                pinVerified = NO;
+            }
+            if (lastAuthType != authType) {
+                if (authType != PAEW_SIGN_AUTH_TYPE_FP && authType != PAEW_SIGN_AUTH_TYPE_PIN)  {
+                    int type = [PickerViewAlert doModal:self title:@"Please select verify method" dataSouce:@[@"Fingerprint", @"PIN"]];
+                    if (type < 0) {
+                        [self printLog:@"user cancelled"];
+                        needAbort = true;
+                        break;
+                    }
+                    authType = type == 0 ? PAEW_SIGN_AUTH_TYPE_FP : PAEW_SIGN_AUTH_TYPE_PIN;
+                }
+                lastAuthType = authType;
+                [self printLog:@"auth type changed, current auth type: %@", (authType == PAEW_SIGN_AUTH_TYPE_FP ? @"Fingerprint" : @"PIN")];
+                iRtn = PAEW_SwitchSign(ppPAEWContext, devIdx);
+            }
+            //if auth type is PIN, PAEW_VerifySignPIN must be called
+            if ((authType == PAEW_SIGN_AUTH_TYPE_PIN) && (!pinVerified)) {
+                NSString *pin = [TextFieldViewAlert doModal:self title:@"Please input PIN" message:@"Please input your PIN to continue" isPassword:YES minLengthRequired:6 keyboardType:UIKeyboardTypeNumberPad];
+                if (!pin) {
+                    authType = PAEW_SIGN_AUTH_TYPE_FP;
+                    pinVerified = NO;
+                    [self printLog:@"user canceled PIN input"];
+                    continue;
+                }
+                iRtn = PAEW_VerifySignPIN(ppPAEWContext, devIdx, [pin cStringUsingEncoding:NSUTF8StringEncoding]);
+                if (iRtn != PAEW_RET_SUCCESS) {
+                    pinVerified = false;
+                    [self printLog:@"PAEW_VerifySignPIN returns failed: %@", [Utils errorCodeToString:iRtn]];
+                    continue;
+                }
+                pinVerified = YES;
+            }
+            //after all, loop to get sign result
+            iRtn = PAEW_CYB_GetSignResult(ppPAEWContext, devIdx, authType, pbTXSig, &pnTXSigLen);
+            
+            if (iRtn == PAEW_RET_SUCCESS) {
+                [self printLog:@"CYB signature succeeded with signature: %@", [Utils bytesToHexString:pbTXSig length:pnTXSigLen]];
+                needAbort = false;
+                break;
+            } else if (lastResult != iRtn) {
+                [self printLog:@"%@ signature status : %@", (authType == PAEW_SIGN_AUTH_TYPE_FP ? @"Fingerprint" : @"PIN"), [Utils errorCodeToString:iRtn]];
+                lastResult = iRtn;
+                //notify here: loop for pin and loop for fp have different loop conditions
+                if (authType == PAEW_SIGN_AUTH_TYPE_FP) {
+                    if (lastResult == PAEW_RET_NO_VERIFY_COUNT) {
+                        //like wechat, if fp verify count ran out, switch to pin verify
+                        self.switchSignFlag = true;
+                        continue;
+                    }
+                    if (lastResult != PAEW_RET_DEV_WAITING
+                        && lastResult != PAEW_RET_DEV_FP_COMMON_ERROR
+                        && lastResult != PAEW_RET_DEV_FP_NO_FINGER
+                        && lastResult != PAEW_RET_DEV_FP_NOT_FULL_FINGER) {
+                        [self printLog:@"CYB signature failed" ];
+                        needAbort = true;
+                        break;
+                    }
+                } else if (authType == PAEW_SIGN_AUTH_TYPE_PIN) {
+                    if (lastResult != PAEW_RET_DEV_WAITING) {
+                        [self printLog:@"CYB signature failed" ];
+                        needAbort = true;
+                        break;
+                    }
+                }
+            }
+            
+            //finally, call abort if PAEW_CYB_GetSignResult returns non PAEW_RET_SUCCESS values
+            if (needAbort) {
+                iRtn = PAEW_AbortSign(ppPAEWContext, devIdx);
+            }
+        }
+    });
+}
+
+//This method is deprecated, keep it only for compatible with old cards
+//Please refer to CYBSignNewBtnAction implementation to sign in a recommended procedure
 - (void)CYBSignBtnAction
 {
     [self printLog:@"ready to call PAEW_CYB_TXSign_Ex"];
@@ -1457,7 +2002,7 @@ int UpdateCOSProgressCallback(void * const pCallbackContext, const size_t nProgr
         callBack.getPIN = GetPin;
         callBack.putSignState = PutSignState;
         selfClass->lastSignState = PAEW_RET_SUCCESS;
-        
+        //This method is deprecated, keep it only for compatible with old card
         iRtn = PAEW_CYB_TXSign_Ex(ppPAEWContext, devIdx, transaction, sizeof(transaction), pbTXSig, &pnTXSigLen, &callBack, 0);
         if (iRtn) {
             [self printLog:@"PAEW_CYB_TXSign_Ex returns failed: %@", [Utils errorCodeToString:iRtn]];
@@ -1468,6 +2013,8 @@ int UpdateCOSProgressCallback(void * const pCallbackContext, const size_t nProgr
     });
 }
 
+//This method is deprecated, keep it only for compatible with old cards
+//Please refer to EOSSignNewBtnAction implementation to sign in a recommended procedure
 - (void)EOSSignBtnAction
 {
     [self printLog:@"ready to call PAEW_EOS_TXSign_Ex"];
@@ -1504,7 +2051,7 @@ int UpdateCOSProgressCallback(void * const pCallbackContext, const size_t nProgr
         callBack.getPIN = GetPin;
         callBack.putSignState = PutSignState;
         selfClass->lastSignState = PAEW_RET_SUCCESS;
-        
+        //This method is deprecated, keep it only for compatible with old cards
         iRtn = PAEW_EOS_TXSign_Ex(ppPAEWContext, devIdx, transaction, sizeof(transaction), pbTXSig, &pnTXSigLen, &callBack, 0);
         if (iRtn) {
             [self printLog:@"PAEW_EOS_TXSign_Ex returns failed: %@", [Utils errorCodeToString:iRtn]];
@@ -1515,19 +2062,8 @@ int UpdateCOSProgressCallback(void * const pCallbackContext, const size_t nProgr
     });
 }
 
-- (UIButton *)ETHSignBtn
-{
-    if (!_ETHSignBtn) {
-        _ETHSignBtn = [UIButton buttonWithType:UIButtonTypeCustom];
-        [_ETHSignBtn setTitle:@"ETHSign" forState:UIControlStateNormal];
-        [_ETHSignBtn setTitleColor:[UIColor blueColor] forState:UIControlStateNormal];
-        _ETHSignBtn.titleLabel.font = [UIFont systemFontOfSize:15.0 weight:UIFontWeightMedium];
-        [_ETHSignBtn setBackgroundColor:[UIColor lightGrayColor]];
-        [_ETHSignBtn addTarget:self action:@selector(ETHSignBtnAction) forControlEvents:UIControlEventTouchUpInside];
-    }
-    return _ETHSignBtn;
-}
-
+//This method is deprecated, keep it only for compatible with old cards
+//Please refer to ETHSignNewBtnAction implementation to sign in a recommended procedure
 - (void)ETHSignBtnAction
 {
     [self printLog:@"ready to call PAEW_ETH_TXSign_Ex"];
@@ -1564,6 +2100,7 @@ int UpdateCOSProgressCallback(void * const pCallbackContext, const size_t nProgr
         callBack.getPIN = GetPin;
         callBack.putSignState = PutSignState;
         selfClass->lastSignState = PAEW_RET_SUCCESS;
+        //This method is deprecated, keep it only for compatible with old cards
         iRtn = PAEW_ETH_TXSign_Ex(ppPAEWContext, devIdx, transaction, sizeof(transaction), pbTXSig,  &pnTXSigLen, &callBack, 0);
         if (iRtn) {
             [self printLog:@"PAEW_ETH_TXSign_Ex returns failed: %@", [Utils errorCodeToString:iRtn]];
@@ -1727,6 +2264,7 @@ int UpdateCOSProgressCallback(void * const pCallbackContext, const size_t nProgr
 
 - (void)verifyFPBtnAction
 {
+    self.abortBtnState = NO;
     [self printLog:@"ready to call PAEW_VerifyFP"];
     dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
         int devIdx = 0;
@@ -1744,6 +2282,13 @@ int UpdateCOSProgressCallback(void * const pCallbackContext, const size_t nProgr
             if (lastRtn != iRtn) {
                 [self printLog:[Utils errorCodeToString:iRtn]];
                 lastRtn = iRtn;
+            }
+            if (self.abortBtnState) {
+                [self.abortCondition lock];
+                !self.abortHandelBlock ? : self.abortHandelBlock(YES);
+                [self.abortCondition wait];
+                [self.abortCondition unlock];
+                self.abortBtnState = NO;
             }
         } while (iRtn == PAEW_RET_DEV_WAITING);
         if (iRtn != PAEW_RET_SUCCESS) {
@@ -1772,6 +2317,7 @@ int UpdateCOSProgressCallback(void * const pCallbackContext, const size_t nProgr
 
 - (void)enrollFPBtnAction
 {
+    self.abortBtnState = NO;
     [self printLog:@"ready to call PAEW_EnrollFP, during the whole enroll process, you can tap Abort button to abort at any time"];
     dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
         int devIdx = 0;

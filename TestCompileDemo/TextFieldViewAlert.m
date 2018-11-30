@@ -84,7 +84,13 @@
         [alertController addAction:cancelAction];
         [alertController addAction:otherAction];
         
-        [parent presentViewController:alertController animated:YES completion:nil];
+        if (NSThread.isMainThread) {
+            [parent presentViewController:alertController animated:YES completion:nil];
+        } else {
+            dispatch_async(dispatch_get_main_queue(), ^{
+                [parent presentViewController:alertController animated:YES completion:nil];
+            });
+        }
         while (!view->buttonPressed) {
             CFRunLoopRun();
         }

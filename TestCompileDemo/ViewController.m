@@ -159,7 +159,7 @@ void *savedDevH;//device handle
     additional.disconnectedCallback = DisconnectedCallback;
     __block void *ppPAEWContext = 0;
     dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
-        int connectDev = PAEW_InitContextWithDevNameAndDevContext(&ppPAEWContext, szDeviceName, PAEW_DEV_TYPE_BT, &additional, sizeof(additional), 0x00, 0x00);
+        int connectDev = PAEW_InitContextWithDevNameAndDevContext(&ppPAEWContext, szDeviceName, PAEW_DEV_TYPE_BT, &additional, sizeof(additional));
         NSLog(@"-------connect returns: 0x%X", connectDev);
         if (ppPAEWContext) {
             savedDevH = ppPAEWContext;

@@ -187,6 +187,18 @@
         case PAEW_RET_DEV_TYPE_INVALID:
             strResult=@"device type invalid";
             break;
+        case PAEW_RET_NO_VERIFY_COUNT:
+            strResult=@"no verify count";
+            break;
+        case PAEW_RET_AUTH_CANCEL:
+            strResult=@"auth cancelled";
+            break;
+        case PAEW_RET_PIN_LEN_ERROR:
+            strResult=@"pin length error";
+            break;
+        case PAEW_RET_AUTH_TYPE_INVALID:
+            strResult=@"auth type invalid";
+            break;
         default:
             strResult = @"unknown error type";
             break;
