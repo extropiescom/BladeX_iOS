@@ -17,6 +17,7 @@
 {
     NSInteger logCounter;
     int lastSignState;
+    int lastButtonState;
     BOOL authTypeCached;
     unsigned char nAuthType;
     int authTypeResult;
@@ -38,6 +39,8 @@
 @property (nonatomic, strong) UIButton *changePinBtn;
 
 @property (nonatomic, strong) UIButton *updateCOSBtn;
+
+@property (nonatomic, strong) UIButton *getBatteryStateBtn;
 
 @property (nonatomic, strong) UIButton *getFPListBtn;
 
@@ -78,7 +81,10 @@
 @property (nonatomic, strong) UIButton *calibrateFPBtn;
 
 @property (nonatomic, strong) UIButton *abortBtn;
+@property (nonatomic, strong) UIButton *abortButton1Btn;
+@property (nonatomic, strong) UIButton *abortButton2Btn;
 @property (nonatomic, strong) UIButton *signAbortBtn;
+
 
 @property (nonatomic, strong) UIButton *clearLogBtn;
 
@@ -113,6 +119,7 @@
 
 @property (nonatomic, assign) BOOL switchSignFlag;
 @property (nonatomic, assign) BOOL abortSignFlag;
+@property (nonatomic, assign) BOOL abortButtonFlag;
 
 @property (nonatomic, strong) NSCondition *abortCondition;
 
@@ -207,6 +214,43 @@ int UpdateCOSProgressCallback(void * const pCallbackContext, const size_t nProgr
     return PAEW_RET_SUCCESS;
 }
 
+int PutState_Callback(void * const pCallbackContext, const int nState)
+{
+    if (nState != selfClass->lastButtonState) {
+        [selfClass printLog:[Utils errorCodeToString:nState]];
+        selfClass->lastButtonState = nState;
+    }
+    //here is a good place to canel sign function
+    if (selfClass.abortButtonFlag) {
+        [selfClass.abortCondition lock];
+        
+        dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
+            int devIdx = 0;
+            uint64_t temp = selfClass.savedDevice;
+            void *ppPAEWContext = (void*)temp;
+            int iRtn = PAEW_RET_UNKNOWN_FAIL;
+            
+            selfClass.abortButtonFlag = NO;
+            [selfClass printLog:@"ready to call PAEW_AbortButton"];
+            [selfClass.abortCondition lock];
+            iRtn = PAEW_AbortButton(ppPAEWContext, devIdx);
+            [selfClass.abortCondition signal];
+            [selfClass.abortCondition unlock];
+            
+            if (iRtn != PAEW_RET_SUCCESS) {
+                [selfClass printLog:@"PAEW_AbortButton returns failed %@", [Utils errorCodeToString:iRtn]];
+                return ;
+            }
+            
+            [selfClass printLog:@"PAEW_AbortButton returns success"];
+        });
+        [selfClass.abortCondition wait];
+        [selfClass.abortCondition unlock];
+        selfClass.abortButtonFlag = NO;
+    }
+    return 0;
+}
+
 - (void)viewDidLoad {
     [super viewDidLoad];
     // Do any additional setup after loading the view.
@@ -216,10 +260,10 @@ int UpdateCOSProgressCallback(void * const pCallbackContext, const size_t nProgr
     
     [self addSubViewAfterVDLoad];
     
-    _deviceCategoryList = [NSArray arrayWithObjects:_getDevInfoBtn, _initiPinBtn, _verifyPinBtn, _changePinBtn, _formatBtn, _clearScreenBtn, _freeContextBtn, _powerOffBtn, _writeSNBtn, _updateCOSBtn, nil];
+    _deviceCategoryList = [NSArray arrayWithObjects:_getDevInfoBtn, _initiPinBtn, _verifyPinBtn, _changePinBtn, _formatBtn, _clearScreenBtn, _freeContextBtn, _powerOffBtn, _writeSNBtn, _updateCOSBtn, _abortButton1Btn, _getBatteryStateBtn, nil];
     _fPrintCategoryList = [NSArray arrayWithObjects:_getFPListBtn, _enrollFPBtn, _verifyFPBtn, _deleteFPBtn, _calibrateFPBtn, _abortBtn, nil];
     _InitCategoryList = [NSArray arrayWithObjects:_genSeedBtn, _importMNEBtn, _recoverSeedBtn, nil];
-    _walletCategoryList = [NSArray arrayWithObjects:_getAddressBtn, _getDeviceCheckCodeBtn, _ETHSignBtn, _EOSSignBtn, _CYBSignBtn,_signAbortBtn, _ETHSignNewBtn, _EOSSignNewBtn, _CYBSignNewBtn, _SwitchSignBtn, nil];
+    _walletCategoryList = [NSArray arrayWithObjects:_getAddressBtn, _getDeviceCheckCodeBtn, _ETHSignBtn, _EOSSignBtn, _CYBSignBtn,_signAbortBtn, _ETHSignNewBtn, _EOSSignNewBtn, _CYBSignNewBtn, _SwitchSignBtn, _abortButton2Btn, nil];
     _imageCategoryList = [NSArray arrayWithObjects:_getImageListBtn, _setImageNameBtn, _getImageNameBtn, _setImageDataBtn, _showImageBtn, _setLogoImageBtn, nil];
     _categoryList = [NSArray arrayWithObjects:_deviceCategoryBtn, _fPrintCategoryBtn, _InitCategoryBtn, _walletCategoryBtn, _imageCategoryBtn, nil];
     _allList = @[self.deviceCategoryList, self.fPrintCategoryList, self.InitCategoryList, self.walletCategoryList, self.imageCategoryList];
@@ -229,6 +273,7 @@ int UpdateCOSProgressCallback(void * const pCallbackContext, const size_t nProgr
     self.abortBtnState = NO;
     self->logCounter = 0;
     self->lastSignState = PAEW_RET_SUCCESS;
+    self->lastButtonState = PAEW_RET_SUCCESS;
     self->nAuthType = 0xFF;
     selfClass = self;
     self->pinResult = PAEW_RET_SUCCESS;
@@ -309,6 +354,8 @@ int UpdateCOSProgressCallback(void * const pCallbackContext, const size_t nProgr
     [self.view addSubview:self.powerOffBtn];
     [self.view addSubview:self.writeSNBtn];
     [self.view addSubview:self.updateCOSBtn];
+    [self.view addSubview:self.abortButton1Btn];
+    [self.view addSubview:self.getBatteryStateBtn];
     
     [self.view addSubview:self.getFPListBtn];
     [self.view addSubview:self.enrollFPBtn];
@@ -331,6 +378,7 @@ int UpdateCOSProgressCallback(void * const pCallbackContext, const size_t nProgr
     [self.view addSubview:self.EOSSignNewBtn];
     [self.view addSubview:self.CYBSignNewBtn];
     [self.view addSubview:self.SwitchSignBtn];
+    [self.view addSubview:self.abortButton2Btn];
     
     [self.view addSubview:self.getImageListBtn];
     [self.view addSubview:self.setImageNameBtn];
@@ -357,11 +405,11 @@ int UpdateCOSProgressCallback(void * const pCallbackContext, const size_t nProgr
         make.top.mas_equalTo(self.changePinBtn.mas_bottom).offset(20);
         make.height.mas_equalTo(30);
     }];
-    [self.updateCOSBtn mas_makeConstraints:^(MASConstraintMaker *make) {
+    NSArray *cat1Arr4 = @[self.updateCOSBtn, self.abortButton1Btn, self.getBatteryStateBtn];
+    [cat1Arr4 mas_distributeViewsAlongAxis:MASAxisTypeHorizontal withFixedSpacing:10 leadSpacing:30 tailSpacing:30];
+    [cat1Arr4 mas_makeConstraints:^(MASConstraintMaker *make) {
         make.top.mas_equalTo(self.freeContextBtn.mas_bottom).offset(20);
-        make.width.mas_equalTo(self.freeContextBtn.mas_width);
         make.height.mas_equalTo(30);
-        make.right.mas_equalTo(self.freeContextBtn.mas_right);
     }];
     
     NSArray *cat2Arr1 = @[self.getFPListBtn, self.enrollFPBtn, self.verifyFPBtn];
@@ -411,11 +459,11 @@ int UpdateCOSProgressCallback(void * const pCallbackContext, const size_t nProgr
         make.top.mas_equalTo(self.ETHSignBtn.mas_bottom).offset(20);
         make.height.mas_equalTo(30);
     }];
-    [self.SwitchSignBtn mas_makeConstraints:^(MASConstraintMaker *make) {
+    NSArray *cat4Arr4 = @[self.SwitchSignBtn, self.abortButton2Btn];
+    [cat4Arr4 mas_distributeViewsAlongAxis:MASAxisTypeHorizontal withFixedSpacing:10 leadSpacing:30 tailSpacing:30];
+    [cat4Arr4 mas_makeConstraints:^(MASConstraintMaker *make) {
         make.top.mas_equalTo(self.ETHSignNewBtn.mas_bottom).offset(20);
         make.height.mas_equalTo(30);
-        make.right.mas_equalTo(self.CYBSignNewBtn.mas_right);
-        make.left.mas_equalTo(self.ETHSignNewBtn.mas_left);
     }];
     
     NSArray *cat5Arr1 = @[self.getImageListBtn, self.setImageNameBtn, self.getImageNameBtn];
@@ -564,6 +612,37 @@ int UpdateCOSProgressCallback(void * const pCallbackContext, const size_t nProgr
         [_abortBtn addTarget:self action:@selector(abortBtnAction) forControlEvents:UIControlEventTouchUpInside];
     }
     return _abortBtn;
+}
+
+- (UIButton *)abortButton1Btn
+{
+    if (!_abortButton1Btn) {
+        _abortButton1Btn = [UIButton buttonWithType:UIButtonTypeCustom];
+        [_abortButton1Btn setTitle:@"AbortButton" forState:UIControlStateNormal];
+        [_abortButton1Btn setTitleColor:[UIColor blueColor] forState:UIControlStateNormal];
+        _abortButton1Btn.titleLabel.font = [UIFont systemFontOfSize:15.0 weight:UIFontWeightMedium];
+        [_abortButton1Btn setBackgroundColor:[UIColor lightGrayColor]];
+        [_abortButton1Btn addTarget:self action:@selector(abortButtonBtnAction) forControlEvents:UIControlEventTouchUpInside];
+    }
+    return _abortButton1Btn;
+}
+
+- (UIButton *)abortButton2Btn
+{
+    if (!_abortButton2Btn) {
+        _abortButton2Btn = [UIButton buttonWithType:UIButtonTypeCustom];
+        [_abortButton2Btn setTitle:@"AbortButton" forState:UIControlStateNormal];
+        [_abortButton2Btn setTitleColor:[UIColor blueColor] forState:UIControlStateNormal];
+        _abortButton2Btn.titleLabel.font = [UIFont systemFontOfSize:15.0 weight:UIFontWeightMedium];
+        [_abortButton2Btn setBackgroundColor:[UIColor lightGrayColor]];
+        [_abortButton2Btn addTarget:self action:@selector(abortButtonBtnAction) forControlEvents:UIControlEventTouchUpInside];
+    }
+    return _abortButton2Btn;
+}
+
+- (void) abortButtonBtnAction
+{
+    self.abortButtonFlag = YES;
 }
 
 - (UIButton *)clearLogBtn
@@ -1156,7 +1235,43 @@ int UpdateCOSProgressCallback(void * const pCallbackContext, const size_t nProgr
 
 - (void)getAddressBtnAction
 {
-    [self printLog:@"ready to call PAEW_GetTradeAddress"];
+    byte coinTypes[] = {PAEW_COIN_TYPE_ETH, PAEW_COIN_TYPE_EOS, PAEW_COIN_TYPE_CYB};
+    NSArray *coinNames = @[@"ETH", @"EOS", @"CYB"];
+    int selectedCoin = [PickerViewAlert doModal:self title:@"please select coin type:" dataSouce:coinNames];
+    if (selectedCoin < 0) {
+        return;
+    }
+    byte coinType = coinTypes[selectedCoin];
+    NSString *coinName = coinNames[selectedCoin];
+    
+    NSArray *showTypeNames = @[@"DO NOT show on screen", @"Show on screen"];
+    int selectedType = [PickerViewAlert doModal:self title:@"please select coin type:" dataSouce:showTypeNames];
+    if (selectedType < 0) {
+        return;
+    }
+    //0 value for do not show address on device, non zero value for show address on device
+    byte showType = (byte)selectedType;
+    uint32_t *puiDerivePath;
+    size_t derivePathLen;
+    switch (coinType) {
+        case PAEW_COIN_TYPE_ETH:
+            puiDerivePath = puiDerivePathETH;
+            derivePathLen = sizeof(puiDerivePathETH)/sizeof(puiDerivePathETH[0]);
+            break;
+        case PAEW_COIN_TYPE_EOS:
+            puiDerivePath = puiDerivePathEOS;
+            derivePathLen = sizeof(puiDerivePathEOS)/sizeof(puiDerivePathEOS[0]);
+            break;
+        case PAEW_COIN_TYPE_CYB:
+            puiDerivePath = puiDerivePathCYB;
+            derivePathLen = sizeof(puiDerivePathCYB)/sizeof(puiDerivePathCYB[0]);
+            break;
+        default:
+            return;
+    }
+    
+    
+    [self printLog:@"ready to call PAEW_GetTradeAddress on %@", coinName];
     dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
         int devIdx = 0;
         void *ppPAEWContext = (void*)self.savedDevice;
@@ -1164,59 +1279,19 @@ int UpdateCOSProgressCallback(void * const pCallbackContext, const size_t nProgr
         unsigned char bAddress[1024] = {0};
         size_t nAddressLen = 1024;
         
-        iRtn = PAEW_DeriveTradeAddress(ppPAEWContext, devIdx, PAEW_COIN_TYPE_ETH, puiDerivePathETH, sizeof(puiDerivePathETH)/sizeof(puiDerivePathETH[0]));
-        unsigned char showOnScreen = 1;//0 value for do not show address on device, non zero value for show address on device
+        iRtn = PAEW_DeriveTradeAddress(ppPAEWContext, devIdx, coinType, puiDerivePath, derivePathLen);
         if (iRtn != PAEW_RET_SUCCESS) {
-            [self printLog:@"PAEW_GetTradeAddress failed due to PAEW_DeriveTradeAddress on ETH returns : %@", [Utils errorCodeToString:iRtn]];
+            [self printLog:@"PAEW_GetTradeAddress failed due to PAEW_DeriveTradeAddress on %@ returns : %@", coinName, [Utils errorCodeToString:iRtn]];
         } else {
-            iRtn = PAEW_GetTradeAddress(ppPAEWContext, devIdx, PAEW_COIN_TYPE_ETH, showOnScreen, bAddress, &nAddressLen);
+            iRtn = PAEW_GetTradeAddress_Ex(ppPAEWContext, devIdx, PAEW_COIN_TYPE_ETH, showType, bAddress, &nAddressLen, PutState_Callback, NULL);
             if (iRtn != PAEW_RET_SUCCESS) {
-                [self printLog:@"PAEW_GetTradeAddress on ETH failed returns : %@", [Utils errorCodeToString:iRtn]];
+                [self printLog:@"PAEW_GetTradeAddress on %@ failed returns : %@", coinName, [Utils errorCodeToString:iRtn]];
             } else {
-                //returned address is hex string only, so we should add '0x' at the begining manually
-                if (showOnScreen) {
-                    PAEW_ClearLCD(ppPAEWContext, devIdx);
-                }
-                [self printLog:@"PAEW_GetTradeAddress on ETH success, address is 0x%@", [NSString stringWithUTF8String:(char *)bAddress]];
+                [self printLog:@"PAEW_GetTradeAddress on %@ success, address is %@", coinName, [NSString stringWithUTF8String:(char *)bAddress]];
             }
-        }
-        
-        nAddressLen = 1024;
-        memset(bAddress, 0, 1024);
-        
-        iRtn = PAEW_DeriveTradeAddress(ppPAEWContext, devIdx, PAEW_COIN_TYPE_EOS, puiDerivePathEOS, sizeof(puiDerivePathEOS)/sizeof(puiDerivePathEOS[0]));
-        if (iRtn != PAEW_RET_SUCCESS) {
-            [self printLog:@"PAEW_GetTradeAddress failed due to PAEW_DeriveTradeAddress on EOS returns : %@", [Utils errorCodeToString:iRtn]];
-        } else {
-            iRtn = PAEW_GetTradeAddress(ppPAEWContext, devIdx, PAEW_COIN_TYPE_EOS, showOnScreen, bAddress, &nAddressLen);
-            if (iRtn != PAEW_RET_SUCCESS) {
-                [self printLog:@"PAEW_GetTradeAddress on EOS failed returns : %@", [Utils errorCodeToString:iRtn]];
-            } else {
-                //EOS address format:  Address(ASCII) + '\0' + Signature(Hex)
-                if (showOnScreen) {
-                    PAEW_ClearLCD(ppPAEWContext, devIdx);
-                }
-                size_t addressLen = strlen(bAddress);
-                NSString *signature = [Utils bytesToHexString:[NSData dataWithBytes:bAddress + addressLen + 1 length:nAddressLen - addressLen - 1] ];
-                [self printLog:@"PAEW_GetTradeAddress on EOS success, address is %@, signature is: %@", [NSString stringWithUTF8String:(char *)bAddress], signature];
-            }
-        }
-        
-        nAddressLen = 1024;
-        memset(bAddress, 0, 1024);
-        
-        iRtn = PAEW_DeriveTradeAddress(ppPAEWContext, devIdx, PAEW_COIN_TYPE_CYB, puiDerivePathCYB, sizeof(puiDerivePathEOS)/sizeof(puiDerivePathEOS[0]));
-        if (iRtn != PAEW_RET_SUCCESS) {
-            [self printLog:@"PAEW_GetTradeAddress failed due to PAEW_DeriveTradeAddress on CYB returns : %@", [Utils errorCodeToString:iRtn]];
-        } else {
-            iRtn = PAEW_GetTradeAddress(ppPAEWContext, devIdx, PAEW_COIN_TYPE_CYB, showOnScreen, bAddress, &nAddressLen);
-            if (iRtn != PAEW_RET_SUCCESS) {
-                [self printLog:@"PAEW_GetTradeAddress on CYB failed returns : %@", [Utils errorCodeToString:iRtn]];
-            } else {
-                if (showOnScreen) {
-                    PAEW_ClearLCD(ppPAEWContext, devIdx);
-                }
-                [self printLog:@"PAEW_GetTradeAddress on CYB success, address is %@", [NSString stringWithUTF8String:(char *)bAddress]];
+            if (showType) {
+                //0 means logo
+                PAEW_ShowImage(ppPAEWContext, devIdx, 0, PAEW_LCD_CLEAR_SHOW_LOGO);
             }
         }
     });
@@ -2199,18 +2274,18 @@ int UpdateCOSProgressCallback(void * const pCallbackContext, const size_t nProgr
 
 - (void)formatBtnAction
 {
-    [self printLog:@"ready to call PAEW_Format"];
+    [self printLog:@"ready to call PAEW_Format_Ex"];
     dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
         int devIdx = 0;
         void *ppPAEWContext = (void*)self.savedDevice;
         int iRtn = PAEW_RET_UNKNOWN_FAIL;
         
-        iRtn = PAEW_Format(ppPAEWContext, devIdx);
+        iRtn = PAEW_Format_Ex(ppPAEWContext, devIdx, PutState_Callback, NULL);
         if (iRtn != PAEW_RET_SUCCESS) {
-            [self printLog:@"PAEW_Format returns failed: %@", [Utils errorCodeToString:iRtn]];
+            [self printLog:@"PAEW_Format_Ex returns failed: %@", [Utils errorCodeToString:iRtn]];
             return ;
         } else {
-            [self printLog:@"PAEW_Format returns success"];
+            [self printLog:@"PAEW_Format_Ex returns success"];
         }
     });
     
@@ -2462,15 +2537,17 @@ int UpdateCOSProgressCallback(void * const pCallbackContext, const size_t nProgr
         return;
     }
     
-    [self printLog:@"ready to call PAEW_ChangePIN_Input"];
+    [self printLog:@"ready to call PAEW_ChangePIN_Input_Ex"];
+    self.abortButtonFlag = NO;
+    self->lastButtonState = PAEW_RET_SUCCESS;
     dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
         int devIdx = 0;
         void *ppPAEWContext = (void*)self.savedDevice;
-        int initState = PAEW_ChangePIN_Input(ppPAEWContext, devIdx, [oldpin UTF8String], [newpin UTF8String]);
+        int initState = PAEW_ChangePIN_Input_Ex(ppPAEWContext, devIdx, [oldpin UTF8String], [newpin UTF8String], PutState_Callback, NULL);
         if (initState == PAEW_RET_SUCCESS) {
-            [self printLog:@"PAEW_ChangePIN_Input returns success"];
+            [self printLog:@"PAEW_ChangePIN_Input_Ex returns success"];
         } else {
-            [self printLog:@"PAEW_ChangePIN_Input returns failed: %@", [Utils errorCodeToString:initState]];
+            [self printLog:@"PAEW_ChangePIN_Input_Ex returns failed: %@", [Utils errorCodeToString:initState]];
         }
     });
 }
@@ -2550,16 +2627,48 @@ int UpdateCOSProgressCallback(void * const pCallbackContext, const size_t nProgr
         [self printLog:@"pin not match"];
         return;
     }
+    self.abortButtonFlag = NO;
+    self->lastButtonState = PAEW_RET_SUCCESS;
     
     dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
         int devIdx = 0;
         void *ppPAEWContext = (void*)self.savedDevice;
-        [self printLog:@"ready to call PAEW_InitPIN"];
-        int initState = PAEW_InitPIN(ppPAEWContext, devIdx, [pin UTF8String]);
+        [self printLog:@"ready to call PAEW_InitPIN_Ex"];
+        int initState = PAEW_InitPIN_Ex(ppPAEWContext, devIdx, [pin UTF8String], PutState_Callback, NULL);
         if (initState == PAEW_RET_SUCCESS) {
-            [self printLog:@"PAEW_InitPIN returns success"];
+            [self printLog:@"PAEW_InitPIN_Ex returns success"];
         } else {
-            [self printLog:@"PAEW_InitPIN returns failed: %@", [Utils errorCodeToString:initState]];
+            [self printLog:@"PAEW_InitPIN_Ex returns failed: %@", [Utils errorCodeToString:initState]];
+        }
+    });
+}
+
+- (UIButton *)getBatteryStateBtn
+{
+    if (!_getBatteryStateBtn) {
+        _getBatteryStateBtn = [UIButton buttonWithType:UIButtonTypeCustom];
+        [_getBatteryStateBtn setTitle:@"GetBatt" forState:UIControlStateNormal];
+        [_getBatteryStateBtn setTitleColor:[UIColor blueColor] forState:UIControlStateNormal];
+        _getBatteryStateBtn.titleLabel.font = [UIFont systemFontOfSize:15.0 weight:UIFontWeightMedium];
+        [_getBatteryStateBtn setBackgroundColor:[UIColor lightGrayColor]];
+        [_getBatteryStateBtn addTarget:self action:@selector(getBatteryStateBtnAction) forControlEvents:UIControlEventTouchUpInside];
+    }
+    return _getBatteryStateBtn;
+}
+
+- (void) getBatteryStateBtnAction
+{
+    dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
+        int devIdx = 0;
+        void *ppPAEWContext = (void*)self.savedDevice;
+        [self printLog:@"ready to call PAEW_GetBatteryValue"];
+        unsigned char pbBatteryValue[2] = {0};
+        size_t nBatteryValueLen = 2;
+        int initState = PAEW_GetBatteryValue(ppPAEWContext, devIdx, pbBatteryValue, &nBatteryValueLen);
+        if (initState == PAEW_RET_SUCCESS) {
+            [self printLog:@"PAEW_GetBatteryValue returns success, power source is: %hh02X, battery level is 0x%hh02X", pbBatteryValue[0], pbBatteryValue[1]];
+        } else {
+            [self printLog:@"PAEW_GetBatteryValue returns failed: %@", [Utils errorCodeToString:initState]];
         }
     });
 }
@@ -2576,6 +2685,8 @@ int UpdateCOSProgressCallback(void * const pCallbackContext, const size_t nProgr
     }
     return _updateCOSBtn;
 }
+
+
 
 - (void)updateCOSBtnAction
 {

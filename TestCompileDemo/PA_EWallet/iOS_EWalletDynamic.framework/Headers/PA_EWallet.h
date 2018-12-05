@@ -313,7 +313,7 @@ typedef struct _signCallbacks {
 typedef struct _PAEW_DevInfo
 {
 	unsigned char	ucPINState; ///<PIN state, valid values are PAEW_DEV_INFO_PIN_XX
-	unsigned char	ucCOSType; ///<COS type, valid values arePAEW_DEV_INFO_COS_TYPE_XXX
+	unsigned char	ucCOSType; ///<COS type, valid values are PAEW_DEV_INFO_COS_TYPE_XXX
 	unsigned char	ucChainType; ///<chain type, valid values are PAEW_DEV_INFO_CHAIN_TYPE_XXX
 	unsigned char	pbSerialNumber[PAEW_DEV_INFO_SN_LEN]; ///<device serial number, current content is ASCII string
 	unsigned char	pbCOSVersion[PAEW_DEV_INFO_COS_VERSION_LEN]; ///<device COS version
@@ -683,6 +683,21 @@ int EWALLET_API PAEW_DeriveTradeAddress(void * const pPAEWContext, const size_t 
 * \sa				PAEW_DeriveTradeAddress()
 */
 int EWALLET_API PAEW_GetTradeAddress(void * const pPAEWContext, const size_t nDevIndex, const unsigned char nCoinType, const unsigned char nShowOnScreen, unsigned char * const pbTradeAddress, size_t * const pnTradeAddressLen);
+
+/**
+* \brief			Get trade address, _MUST_ be invoked after PAEW_DeriveTradeAddress() is called
+* \param[in]		pPAEWContext	library context, shouldn't be NULL
+* \param[in]		nDevIndex		index of device, valid range of value is [0, nDevCount-1]
+* \param[in]		nCoinType		coin type, valid values are PAEW_COIN_TYPE_XXX (\ref group_coin_type)
+* \param[in]		nShowOnScreen	whether coin address showed on device screen, 0 means not shown, 1 means show address on screen
+* \param[out]		pbTradeAddress		trade address encoded according to \p nCoinType
+* \param[in,out]	pnTradeAddressLen	contains size of \p pbTradeAddress when input, and contains actual length of address when output
+* \param[in]		pPutStateCallback	callback called when loop device button press
+* \param[in]		pCallbackContext	callback context used by \p pPutStateCallback
+* \return			#PAEW_RET_SUCCESS means success, and other value means failure (\ref group_retvalue)
+* \sa				PAEW_DeriveTradeAddress()
+*/
+int EWALLET_API PAEW_GetTradeAddress_Ex(void * const pPAEWContext, const size_t nDevIndex, const unsigned char nCoinType, const unsigned char nShowOnScreen, unsigned char * const pbTradeAddress, size_t * const pnTradeAddressLen, const tFunc_PutState_Callback pPutStateCallback, void * const pCallbackContext);
 
 /**
 * \brief			Get public key, _MUST_ be invoked after PAEW_DeriveTradeAddress() is called
@@ -1286,6 +1301,19 @@ int EWALLET_API PAEW_ChangePIN(void * const pPAEWContext, const size_t nDevIndex
 int EWALLET_API PAEW_ChangePIN_Input(void * const pPAEWContext, const size_t nDevIndex, const char * const szOldPIN, const char * const szNewPIN);
 
 /**
+* \brief			Change PIN (used only by bio device)
+*
+* \param[in]		pPAEWContext	library context, shouldn't be NULL
+* \param[in]		nDevIndex		index of device, valid range of value is [0, nDevCount-1]
+* \param[in]		szOldPIN		old PIN which need to be changed
+* \param[in]		szNewPIN		new PIN want to change to
+* \param[in]		pPutStateCallback	callback called when loop device button press
+* \param[in]		pCallbackContext	callback context used by \p pPutStateCallback
+* \return			#PAEW_RET_SUCCESS means success, and other value means failure (\ref group_retvalue)
+*/
+int EWALLET_API PAEW_ChangePIN_Input_Ex(void * const pPAEWContext, const size_t nDevIndex, const char * const szOldPIN, const char * const szNewPIN, const tFunc_PutState_Callback pPutStateCallback, void * const pCallbackContext);
+
+/**
 * \brief			Initialize PIN (used only by bio device)
 *
 * This function should be called only ONCE until be formatted
@@ -1325,6 +1353,16 @@ int EWALLET_API PAEW_VerifyPIN(void * const pPAEWContext, const size_t nDevIndex
 * \return			#PAEW_RET_SUCCESS means success, and other value means failure (\ref group_retvalue)
 */
 int EWALLET_API PAEW_Format(void * const pPAEWContext, const size_t nDevIndex);
+
+/**
+* \brief			Format device, usually used when user forgets his PIN
+* \param[in]		pPAEWContext		library context, shouldn't be NULL
+* \param[in]		nDevIndex			index of device, valid range of value is [0, nDevCount-1]
+* \param[in]		pPutStateCallback	callback called when loop device button press (used only by bio device)
+* \param[in]		pCallbackContext	callback context used by \p pPutStateCallback (used only by bio device)
+* \return			#PAEW_RET_SUCCESS means success, and other value means failure (\ref group_retvalue)
+*/
+int EWALLET_API PAEW_Format_Ex(void * const pPAEWContext, const size_t nDevIndex, const tFunc_PutState_Callback pPutStateCallback, void * const pCallbackContext);
 
 /**
 * \brief			Update COS
@@ -1628,11 +1666,29 @@ int EWALLET_API PAEW_SwitchSign(void * const pPAEWContext, const size_t nDevInde
 * This function should be called if user wants to abort current transaction sign. Typically, if PAEW_XXX_GetSignResult returns error (exclude #PAEW_RET_DEV_STATE_INVALID or #PAEW_RET_NO_VERIFY_COUNT (with \p nSignAuthType == #PAEW_SIGN_AUTH_TYPE_FP and #PAEW_SIGN_AUTH_TYPE_PIN)), this function must be called to restore device state
 * \param[in]		pPAEWContext	library context, shouldn't be NULL
 * \param[in]		nDevIndex		index of device, valid range of value is [0, nDevCount-1]
-* \return			#PAEW_RET_SUCCESS means success, #PAEW_RET_DEV_WAITING means device is waiting for user operation, and other value means failure (\ref group_retvalue)
-* \sa				PAEW_ETH_GetSignResult()
+* \return			#PAEW_RET_SUCCESS means success, and other value means failure (\ref group_retvalue)
 */
 int EWALLET_API PAEW_AbortSign(void * const pPAEWContext, const size_t nDevIndex);
 
+/**
+* \brief			Get battery value (used only by bio device)
+*
+* \param[in]		pPAEWContext		library context, shouldn't be NULL
+* \param[in]		nDevIndex			index of device, valid range of value is [0, nDevCount-1]
+* \param[out]		pbBatteryValue		contains battery value, data format is: PowerSource || PowerLevel. PowerSource is 1-byte data, 0x00 means connecting and charging with usb, 0x01 means using battery. PowerLevel is 1-byte data, indicates power value of battery.
+* \param[in,out]	pnBatteryValueLen	size of \p pbBatteryValue when input, and contains actual length of battery value data when output
+* \return			#PAEW_RET_SUCCESS means success, and other value means failure (\ref group_retvalue)
+*/
+int EWALLET_API PAEW_GetBatteryValue(void * const pPAEWContext, const size_t nDevIndex, unsigned char * const pbBatteryValue, size_t * const pnBatteryValueLen);
+
+/**
+* \brief			Abort button waiting (used only by bio device)
+*
+* \param[in]		pPAEWContext	library context, shouldn't be NULL
+* \param[in]		nDevIndex		index of device, valid range of value is [0, nDevCount-1]
+* \return			#PAEW_RET_SUCCESS means success, and other value means failure (\ref group_retvalue)
+*/
+int EWALLET_API PAEW_AbortButton(void * const pPAEWContext, const size_t nDevIndex);
 ///@}
 
 #ifdef __cplusplus
