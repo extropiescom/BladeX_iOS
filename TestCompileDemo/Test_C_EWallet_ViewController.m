@@ -42,6 +42,8 @@
 
 @property (nonatomic, strong) UIButton *getBatteryStateBtn;
 
+@property (nonatomic, strong) UIButton *getFWVersionBtn;
+
 @property (nonatomic, strong) UIButton *getFPListBtn;
 
 @property (nonatomic, strong) UIButton *enrollFPBtn;
@@ -260,7 +262,7 @@ int PutState_Callback(void * const pCallbackContext, const int nState)
     
     [self addSubViewAfterVDLoad];
     
-    _deviceCategoryList = [NSArray arrayWithObjects:_getDevInfoBtn, _initiPinBtn, _verifyPinBtn, _changePinBtn, _formatBtn, _clearScreenBtn, _freeContextBtn, _powerOffBtn, _writeSNBtn, _updateCOSBtn, _abortButton1Btn, _getBatteryStateBtn, nil];
+    _deviceCategoryList = [NSArray arrayWithObjects:_getDevInfoBtn, _initiPinBtn, _verifyPinBtn, _changePinBtn, _formatBtn, _clearScreenBtn, _freeContextBtn, _powerOffBtn, _writeSNBtn, _updateCOSBtn, _abortButton1Btn, _getBatteryStateBtn, _getFWVersionBtn, nil];
     _fPrintCategoryList = [NSArray arrayWithObjects:_getFPListBtn, _enrollFPBtn, _verifyFPBtn, _deleteFPBtn, _calibrateFPBtn, _abortBtn, nil];
     _InitCategoryList = [NSArray arrayWithObjects:_genSeedBtn, _importMNEBtn, _recoverSeedBtn, nil];
     _walletCategoryList = [NSArray arrayWithObjects:_getAddressBtn, _getDeviceCheckCodeBtn, _ETHSignBtn, _EOSSignBtn, _CYBSignBtn,_signAbortBtn, _ETHSignNewBtn, _EOSSignNewBtn, _CYBSignNewBtn, _SwitchSignBtn, _abortButton2Btn, nil];
@@ -292,6 +294,8 @@ int PutState_Callback(void * const pCallbackContext, const int nState)
     }
 }
 
+#define LINESPACING 10
+#define BUTTONHEIGHT 30
 - (void)addSubViewAfterVDLoad
 {
     [self.view addSubview:self.in_outTextView];
@@ -356,6 +360,7 @@ int PutState_Callback(void * const pCallbackContext, const int nState)
     [self.view addSubview:self.updateCOSBtn];
     [self.view addSubview:self.abortButton1Btn];
     [self.view addSubview:self.getBatteryStateBtn];
+    [self.view addSubview:self.getFWVersionBtn];
     
     [self.view addSubview:self.getFPListBtn];
     [self.view addSubview:self.enrollFPBtn];
@@ -390,38 +395,45 @@ int PutState_Callback(void * const pCallbackContext, const int nState)
     NSArray *cat1Arr1 = @[self.getDevInfoBtn, self.initiPinBtn, self.verifyPinBtn];
     [cat1Arr1 mas_distributeViewsAlongAxis:MASAxisTypeHorizontal withFixedSpacing:10 leadSpacing:30 tailSpacing:30];
     [cat1Arr1 mas_makeConstraints:^(MASConstraintMaker *make) {
-        make.top.mas_equalTo(self.deviceCategoryBtn.mas_bottom).offset(20);
+        make.top.mas_equalTo(self.deviceCategoryBtn.mas_bottom).offset(LINESPACING);
         make.height.mas_equalTo(30);
     }];
     NSArray *cat1Arr2 = @[self.changePinBtn, self.formatBtn, self.clearScreenBtn];
     [cat1Arr2 mas_distributeViewsAlongAxis:MASAxisTypeHorizontal withFixedSpacing:10 leadSpacing:30 tailSpacing:30];
     [cat1Arr2 mas_makeConstraints:^(MASConstraintMaker *make) {
-        make.top.mas_equalTo(self.getDevInfoBtn.mas_bottom).offset(20);
+        make.top.mas_equalTo(self.getDevInfoBtn.mas_bottom).offset(LINESPACING);
         make.height.mas_equalTo(30);
     }];
     NSArray *cat1Arr3 = @[self.freeContextBtn, self.powerOffBtn, self.writeSNBtn];
     [cat1Arr3 mas_distributeViewsAlongAxis:MASAxisTypeHorizontal withFixedSpacing:10 leadSpacing:30 tailSpacing:30];
     [cat1Arr3 mas_makeConstraints:^(MASConstraintMaker *make) {
-        make.top.mas_equalTo(self.changePinBtn.mas_bottom).offset(20);
+        make.top.mas_equalTo(self.changePinBtn.mas_bottom).offset(LINESPACING);
         make.height.mas_equalTo(30);
     }];
     NSArray *cat1Arr4 = @[self.updateCOSBtn, self.abortButton1Btn, self.getBatteryStateBtn];
     [cat1Arr4 mas_distributeViewsAlongAxis:MASAxisTypeHorizontal withFixedSpacing:10 leadSpacing:30 tailSpacing:30];
     [cat1Arr4 mas_makeConstraints:^(MASConstraintMaker *make) {
-        make.top.mas_equalTo(self.freeContextBtn.mas_bottom).offset(20);
+        make.top.mas_equalTo(self.freeContextBtn.mas_bottom).offset(LINESPACING);
         make.height.mas_equalTo(30);
+    }];
+    
+    [self.getFWVersionBtn mas_makeConstraints:^(MASConstraintMaker *make) {
+        make.top.mas_equalTo(self.updateCOSBtn.mas_bottom).offset(LINESPACING);
+        make.height.mas_equalTo(30);
+        make.left.mas_equalTo(self.updateCOSBtn.mas_left);
+        make.right.mas_equalTo(self.updateCOSBtn.mas_right);
     }];
     
     NSArray *cat2Arr1 = @[self.getFPListBtn, self.enrollFPBtn, self.verifyFPBtn];
     [cat2Arr1 mas_distributeViewsAlongAxis:MASAxisTypeHorizontal withFixedSpacing:10 leadSpacing:30 tailSpacing:30];
     [cat2Arr1 mas_makeConstraints:^(MASConstraintMaker *make) {
-        make.top.mas_equalTo(self.deviceCategoryBtn.mas_bottom).offset(20);
+        make.top.mas_equalTo(self.deviceCategoryBtn.mas_bottom).offset(LINESPACING);
         make.height.mas_equalTo(30);
     }];
     NSArray *cat2Arr2 = @[self.deleteFPBtn, self.calibrateFPBtn, self.abortBtn];
     [cat2Arr2 mas_distributeViewsAlongAxis:MASAxisTypeHorizontal withFixedSpacing:10 leadSpacing:30 tailSpacing:30];
     [cat2Arr2 mas_makeConstraints:^(MASConstraintMaker *make) {
-        make.top.mas_equalTo(self.getDevInfoBtn.mas_bottom).offset(20);
+        make.top.mas_equalTo(self.getDevInfoBtn.mas_bottom).offset(LINESPACING);
         make.height.mas_equalTo(30);
     }];
     
@@ -429,7 +441,7 @@ int PutState_Callback(void * const pCallbackContext, const int nState)
     NSArray *cat3Arr1 = @[self.genSeedBtn, self.importMNEBtn, self.recoverSeedBtn];
     [cat3Arr1 mas_distributeViewsAlongAxis:MASAxisTypeHorizontal withFixedSpacing:10 leadSpacing:30 tailSpacing:30];
     [cat3Arr1 mas_makeConstraints:^(MASConstraintMaker *make) {
-        make.top.mas_equalTo(self.deviceCategoryBtn.mas_bottom).offset(20);
+        make.top.mas_equalTo(self.deviceCategoryBtn.mas_bottom).offset(LINESPACING);
         make.height.mas_equalTo(30);
     }];
     
@@ -444,38 +456,38 @@ int PutState_Callback(void * const pCallbackContext, const int nState)
     NSArray *cat4Arr1 = @[self.getAddressBtn, self.getDeviceCheckCodeBtn, self.signAbortBtn];
     [cat4Arr1 mas_distributeViewsAlongAxis:MASAxisTypeHorizontal withFixedSpacing:10 leadSpacing:30 tailSpacing:30];
     [cat4Arr1 mas_makeConstraints:^(MASConstraintMaker *make) {
-        make.top.mas_equalTo(self.deviceCategoryBtn.mas_bottom).offset(20);
+        make.top.mas_equalTo(self.deviceCategoryBtn.mas_bottom).offset(LINESPACING);
         make.height.mas_equalTo(30);
     }];
     NSArray *cat4Arr2 = @[self.ETHSignBtn, self.EOSSignBtn, self.CYBSignBtn];
     [cat4Arr2 mas_distributeViewsAlongAxis:MASAxisTypeHorizontal withFixedSpacing:10 leadSpacing:30 tailSpacing:30];
     [cat4Arr2 mas_makeConstraints:^(MASConstraintMaker *make) {
-        make.top.mas_equalTo(self.getDevInfoBtn.mas_bottom).offset(20);
+        make.top.mas_equalTo(self.getDevInfoBtn.mas_bottom).offset(LINESPACING);
         make.height.mas_equalTo(30);
     }];
     NSArray *cat4Arr3 = @[self.ETHSignNewBtn, self.EOSSignNewBtn, self.CYBSignNewBtn];
     [cat4Arr3 mas_distributeViewsAlongAxis:MASAxisTypeHorizontal withFixedSpacing:10 leadSpacing:30 tailSpacing:30];
     [cat4Arr3 mas_makeConstraints:^(MASConstraintMaker *make) {
-        make.top.mas_equalTo(self.ETHSignBtn.mas_bottom).offset(20);
+        make.top.mas_equalTo(self.ETHSignBtn.mas_bottom).offset(LINESPACING);
         make.height.mas_equalTo(30);
     }];
     NSArray *cat4Arr4 = @[self.SwitchSignBtn, self.abortButton2Btn];
     [cat4Arr4 mas_distributeViewsAlongAxis:MASAxisTypeHorizontal withFixedSpacing:10 leadSpacing:30 tailSpacing:30];
     [cat4Arr4 mas_makeConstraints:^(MASConstraintMaker *make) {
-        make.top.mas_equalTo(self.ETHSignNewBtn.mas_bottom).offset(20);
+        make.top.mas_equalTo(self.ETHSignNewBtn.mas_bottom).offset(LINESPACING);
         make.height.mas_equalTo(30);
     }];
     
     NSArray *cat5Arr1 = @[self.getImageListBtn, self.setImageNameBtn, self.getImageNameBtn];
     [cat5Arr1 mas_distributeViewsAlongAxis:MASAxisTypeHorizontal withFixedSpacing:10 leadSpacing:30 tailSpacing:30];
     [cat5Arr1 mas_makeConstraints:^(MASConstraintMaker *make) {
-        make.top.mas_equalTo(self.deviceCategoryBtn.mas_bottom).offset(20);
+        make.top.mas_equalTo(self.deviceCategoryBtn.mas_bottom).offset(LINESPACING);
         make.height.mas_equalTo(30);
     }];
     NSArray *cat5Arr2 = @[self.setImageDataBtn, self.showImageBtn, self.setLogoImageBtn];
     [cat5Arr2 mas_distributeViewsAlongAxis:MASAxisTypeHorizontal withFixedSpacing:10 leadSpacing:30 tailSpacing:30];
     [cat5Arr2 mas_makeConstraints:^(MASConstraintMaker *make) {
-        make.top.mas_equalTo(self.getDevInfoBtn.mas_bottom).offset(20);
+        make.top.mas_equalTo(self.getDevInfoBtn.mas_bottom).offset(LINESPACING);
         make.height.mas_equalTo(30);
     }];
     
@@ -483,8 +495,8 @@ int PutState_Callback(void * const pCallbackContext, const int nState)
     
     [self.view addSubview:self.clearLogBtn];
     [self.clearLogBtn mas_makeConstraints:^(MASConstraintMaker *make) {
-        make.top.mas_equalTo(self.updateCOSBtn.mas_bottom).offset(20);
-        make.width.mas_equalTo(100);
+        make.top.mas_equalTo(self.getFWVersionBtn.mas_bottom).offset(LINESPACING);
+        make.left.mas_equalTo(self.initiPinBtn.mas_left);
         make.height.mas_equalTo(30);
         make.right.mas_equalTo(self.initiPinBtn.mas_right);
     }];
@@ -2639,6 +2651,41 @@ int PutState_Callback(void * const pCallbackContext, const int nState)
             [self printLog:@"PAEW_InitPIN_Ex returns success"];
         } else {
             [self printLog:@"PAEW_InitPIN_Ex returns failed: %@", [Utils errorCodeToString:initState]];
+        }
+    });
+}
+
+- (UIButton *)getFWVersionBtn
+{
+    if (!_getFWVersionBtn) {
+        _getFWVersionBtn = [UIButton buttonWithType:UIButtonTypeCustom];
+        [_getFWVersionBtn setTitle:@"GetFWVer" forState:UIControlStateNormal];
+        [_getFWVersionBtn setTitleColor:[UIColor blueColor] forState:UIControlStateNormal];
+        _getFWVersionBtn.titleLabel.font = [UIFont systemFontOfSize:15.0 weight:UIFontWeightMedium];
+        [_getFWVersionBtn setBackgroundColor:[UIColor lightGrayColor]];
+        [_getFWVersionBtn addTarget:self action:@selector(getFWVersionBtnAction) forControlEvents:UIControlEventTouchUpInside];
+    }
+    return _getFWVersionBtn;
+}
+
+- (void)getFWVersionBtnAction
+{
+    dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
+        int devIdx = 0;
+        void *ppPAEWContext = (void*)self.savedDevice;
+        [self printLog:@"ready to call PAEW_GetFWVersion"];
+        PAEW_FWVersion version = {0};
+        int initState = PAEW_GetFWVersion(ppPAEWContext, devIdx, &version);
+        if (initState == PAEW_RET_SUCCESS) {
+            NSString *algVer = [Utils bytesToHexString:version.pbAlgVersion length:version.nAlgVersionLen];
+            NSString *majorVer = [Utils bytesToHexString:version.pbMajorVersion length:sizeof(version.pbMajorVersion)];
+            NSString *minorVer = [Utils bytesToHexString:version.pbMinorVersion length:sizeof(version.pbMinorVersion)];
+            NSString *loaderVer = [Utils bytesToHexString:version.pbLoaderVersion length:sizeof(version.pbLoaderVersion)];
+            NSString *loaderChipVer = [Utils bytesToHexString:version.pbLoaderChipVersion length:sizeof(version.pbLoaderChipVersion)];
+            NSString *userChipVer = [Utils bytesToHexString:version.pbUserChipVersion length:sizeof(version.pbUserChipVersion)];
+            [self printLog:@"PAEW_GetFWVersion returns success, algVer is %@, majorVer is %@, minorVer is %@, loaderChipVer is %@, laoderVer is %@, userChipVer is %@", algVer, majorVer, minorVer, loaderChipVer, loaderVer, userChipVer];
+        } else {
+            [self printLog:@"PAEW_GetFWVersion returns failed: %@", [Utils errorCodeToString:initState]];
         }
     });
 }
