@@ -2683,7 +2683,7 @@ int PutState_Callback(void * const pCallbackContext, const int nState)
             NSString *loaderVer = [Utils bytesToHexString:version.pbLoaderVersion length:sizeof(version.pbLoaderVersion)];
             NSString *loaderChipVer = [Utils bytesToHexString:version.pbLoaderChipVersion length:sizeof(version.pbLoaderChipVersion)];
             NSString *userChipVer = [Utils bytesToHexString:version.pbUserChipVersion length:sizeof(version.pbUserChipVersion)];
-            [self printLog:@"PAEW_GetFWVersion returns success, algVer is %@, majorVer is %@, minorVer is %@, loaderChipVer is %@, laoderVer is %@, userChipVer is %@", algVer, majorVer, minorVer, loaderChipVer, loaderVer, userChipVer];
+            [self printLog:@"PAEW_GetFWVersion returns success, algVer is %@, majorVer is %@, minorVer is %@, loaderChipVer is %@, loaderVer is %@, userChipVer is %@, isUserFW: %hh02X", algVer, majorVer, minorVer, loaderChipVer, loaderVer, userChipVer, version.nIsUserFW];
         } else {
             [self printLog:@"PAEW_GetFWVersion returns failed: %@", [Utils errorCodeToString:initState]];
         }
