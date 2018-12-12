@@ -2385,7 +2385,7 @@ int PutState_Callback(void * const pCallbackContext, const int nState)
         
         size_t          nFPListCount = 1;
         FingerPrintID   *fpIDList = (FingerPrintID *)malloc(sizeof(FingerPrintID) * nFPListCount);
-        memset(fpIDList, 0, sizeof(sizeof(FingerPrintID) * nFPListCount));
+        memset(fpIDList, 0, sizeof(FingerPrintID) * nFPListCount);
         iRtn = PAEW_GetVerifyFPList(ppPAEWContext, devIdx, fpIDList, &nFPListCount);
         if (iRtn != PAEW_RET_SUCCESS) {
             [self printLog:@"PAEW_VerifyFP failed due to PAEW_GetVerifyFPList returns: %@", [Utils errorCodeToString:iRtn]];
