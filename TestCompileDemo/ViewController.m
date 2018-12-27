@@ -34,6 +34,8 @@ typedef void(^pCallbackParam)(char *);
 
 @property (nonatomic, copy) pProcCallback pProcCallback;
 
+@property (nonatomic, strong) Test_C_EWallet_ViewController *testC;
+
 
 @end
 
@@ -152,13 +154,14 @@ void *savedDevH;//device handle
 
 - (void)connectDeviceAction:(NSString *)devNameID
 {
-    char *szDeviceName = (char *)[devNameID UTF8String];
-    __block ConnectContext additional = {0};
-    additional.timeout = 5;
-    additional.batteryCallBack = BatteryCallback;
-    additional.disconnectedCallback = DisconnectedCallback;
-    __block void *ppPAEWContext = 0;
+    
     dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
+        char *szDeviceName = (char *)[devNameID UTF8String];
+        ConnectContext additional = {0};
+        additional.timeout = 5;
+        additional.batteryCallBack = BatteryCallback;
+        additional.disconnectedCallback = DisconnectedCallback;
+        void *ppPAEWContext = 0;
         int connectDev = PAEW_InitContextWithDevNameAndDevContext(&ppPAEWContext, szDeviceName, PAEW_DEV_TYPE_BT, &additional, sizeof(additional));
         NSLog(@"-------connect returns: 0x%X", connectDev);
         if (ppPAEWContext) {
@@ -167,10 +170,14 @@ void *savedDevH;//device handle
         dispatch_async(dispatch_get_main_queue(), ^{
             if (connectDev == PAEW_RET_SUCCESS) {
                 [LCProgressHUD showSuccess:@"Connect Success"];
-                Test_C_EWallet_ViewController *testC = [[Test_C_EWallet_ViewController alloc] init];
+                //Test_C_EWallet_ViewController *testC = [[Test_C_EWallet_ViewController alloc] init];
+                
                 uint64_t pt = (uint64_t)savedDevH;
-                testC.savedDevice = pt;
-                [self.navigationController pushViewController:testC animated:YES];
+                if (!self.testC) {
+                    self.testC = [[Test_C_EWallet_ViewController alloc] init];
+                }
+                self.testC.savedDevice = pt;
+                [self.navigationController pushViewController:self.testC animated:YES];
             } else {
                 [LCProgressHUD showFailure:@"Fail to Connect"];
             }

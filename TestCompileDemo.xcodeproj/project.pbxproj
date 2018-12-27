@@ -27,6 +27,7 @@
 		3CA0ABA4212D6E0900071F12 /* Utils.m in Sources */ = {isa = PBXBuildFile; fileRef = 3CA0ABA3212D6E0900071F12 /* Utils.m */; };
 		3CC24543212C333400A9EFC3 /* PickerViewAlert.m in Sources */ = {isa = PBXBuildFile; fileRef = 3CC24542212C333400A9EFC3 /* PickerViewAlert.m */; };
 		3CC24546212D2A1C00A9EFC3 /* TextFieldViewAlert.m in Sources */ = {isa = PBXBuildFile; fileRef = 3CC24545212D2A1C00A9EFC3 /* TextFieldViewAlert.m */; };
+		3E13056121D507F600B08545 /* logo in Resources */ = {isa = PBXBuildFile; fileRef = 3E13056021D507F600B08545 /* logo */; };
 		3E25B7EC217890FD00E6241F /* iOS_EWalletDynamic.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 3E25B7EB217890FD00E6241F /* iOS_EWalletDynamic.framework */; };
 		3E25B7ED2178910500E6241F /* iOS_EWalletDynamic.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 3E25B7EB217890FD00E6241F /* iOS_EWalletDynamic.framework */; };
 		3E25B7EE2178910500E6241F /* iOS_EWalletDynamic.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = 3E25B7EB217890FD00E6241F /* iOS_EWalletDynamic.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
@@ -51,6 +52,15 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXCopyFilesBuildPhase section */
+		3E13055521D4F0D100B08545 /* CopyFiles */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = logo;
+			dstSubfolderSpec = 7;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		3E90879C21709C6A001262F2 /* Embed Frameworks */ = {
 			isa = PBXCopyFilesBuildPhase;
 			buildActionMask = 2147483647;
@@ -107,6 +117,7 @@
 		3CC24542212C333400A9EFC3 /* PickerViewAlert.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = PickerViewAlert.m; sourceTree = "<group>"; };
 		3CC24544212D2A1C00A9EFC3 /* TextFieldViewAlert.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = TextFieldViewAlert.h; sourceTree = "<group>"; };
 		3CC24545212D2A1C00A9EFC3 /* TextFieldViewAlert.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = TextFieldViewAlert.m; sourceTree = "<group>"; };
+		3E13056021D507F600B08545 /* logo */ = {isa = PBXFileReference; lastKnownFileType = folder; path = logo; sourceTree = "<group>"; };
 		3E25B7EB217890FD00E6241F /* iOS_EWalletDynamic.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; path = iOS_EWalletDynamic.framework; sourceTree = "<group>"; };
 		9A5F10E779203CB114825C89 /* Pods-TestCompileDemo.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-TestCompileDemo.release.xcconfig"; path = "Pods/Target Support Files/Pods-TestCompileDemo/Pods-TestCompileDemo.release.xcconfig"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
@@ -195,6 +206,7 @@
 		3C1C1ED521216B760055F8FF /* TestCompileDemo */ = {
 			isa = PBXGroup;
 			children = (
+				3E13056021D507F600B08545 /* logo */,
 				3C072AE021242C8C00692758 /* LCProgressHUD */,
 				3C1C1F1C212188320055F8FF /* VCCell */,
 				3C1C1F20212188330055F8FF /* VCModel */,
@@ -290,6 +302,7 @@
 				3C1C1ED121216B760055F8FF /* Resources */,
 				B1A1ACA45B583C3AF8223610 /* [CP] Copy Pods Resources */,
 				3E90879C21709C6A001262F2 /* Embed Frameworks */,
+				3E13055521D4F0D100B08545 /* CopyFiles */,
 			);
 			buildRules = (
 			);
@@ -384,6 +397,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				3C072AE421242C8C00692758 /* LCProgressHUD.bundle in Resources */,
+				3E13056121D507F600B08545 /* logo in Resources */,
 				3C1C1EE321216B770055F8FF /* LaunchScreen.storyboard in Resources */,
 				3C1C1EE021216B770055F8FF /* Assets.xcassets in Resources */,
 				3C1C1EDE21216B760055F8FF /* Main.storyboard in Resources */,

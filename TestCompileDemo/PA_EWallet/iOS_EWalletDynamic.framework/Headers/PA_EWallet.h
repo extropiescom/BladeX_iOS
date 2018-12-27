@@ -35,7 +35,7 @@ END:
  * \endcode
  * 
  * \subsection subsec_init Initialize wallet
- * Device without seed (usually brand new or formatted) needs to be initialized before signing transaction. In this case, the life cycle of device info is #PAEW_DEV_INFO_LIFECYCLE_PRODUCE. After initialize, life cycle will change to #PAEW_DEV_INFO_LIFECYCLE_USER. User has two approaches to initialize device.
+ * Device without seed (usually brand new or formatted) needs to be initialized before signing transaction. In this case, the life cycle of device info is #PAEW_DEV_INFO_LIFECYCLE_AGREE. After initialize, life cycle will change to #PAEW_DEV_INFO_LIFECYCLE_USER. User has two approaches to initialize device.
  * - Generate seed
  *   Using PAEW_GenerateSeed() for solo and dragon ball device or using PAEW_GenerateSeed_GetMnes() + PAEW_GenerateSeed_CheckMnes() for bio device.
  * \code
@@ -125,7 +125,7 @@ PAEW_ETH_TXSign(pPAEWContext, 0, pbETHCurrentTX, sizeof(pbETHCurrentTX), pbETHTX
 #define PAEW_RET_COIN_TYPE_INVALID			0x8000001C ///<value of coin type must be PAEW_COIN_TYPE_XXX
 #define PAEW_RET_COIN_TYPE_NOT_MATCH		0x8000001D ///<value of coin type must be equal to the value passed to PAEW_DeriveTradeAddress
 #define PAEW_RET_DERIVE_PATH_INVALID		0x8000001E ///<derive path must start by 0x00000000, indicates m
-#define PAEW_RET_NOT_SUPPORTED				0x8000001F ///<operation not supportted
+#define PAEW_RET_NOT_SUPPORTED				0x8000001F ///<operation not supported
 #define PAEW_RET_INTERNAL_ERROR				0x80000020 ///<library internal errors, such as internal structure definition mistake
 #define PAEW_RET_BAD_N_T					0x80000021 ///<value of N or T is invalid
 #define PAEW_RET_TARGET_DEV_INVALID			0x80000022 ///<when getting address or signing, dragon ball must select a target device by calling PAEW_DeriveTradeAddress successfully first
@@ -211,6 +211,7 @@ typedef struct _signCallbacks {
 #define PAEW_DEV_INFOTYPE_SESSKEY_HASH	0x00000040 ///<dragon ball device group hash
 #define PAEW_DEV_INFOTYPE_N_T			0x00000080 ///<dragon ball device N / T
 #define PAEW_DEV_INFOTYPE_LCD_STATE		0x00000100 ///<device screen state
+#define PAEW_DEV_INFOTYPE_BLE_VERSION	0x00000200 ///<bio BLE version
 ///@}
 
 /**
@@ -265,9 +266,9 @@ typedef struct _signCallbacks {
  */
 /// @{
 #define PAEW_DEV_INFO_LIFECYCLE_INVALID		0xFF ///<invalid lifecycle
-#define PAEW_DEV_INFO_LIFECYCLE_AGREE		0x01 ///<production state
+#define PAEW_DEV_INFO_LIFECYCLE_AGREE		0x01 ///<not generate seed
 #define PAEW_DEV_INFO_LIFECYCLE_USER		0x02 ///<normal state
-#define PAEW_DEV_INFO_LIFECYCLE_PRODUCE		0x04 ///<not generate seed
+#define PAEW_DEV_INFO_LIFECYCLE_PRODUCE		0x04 ///<production state
 /// @}
 
 /**
@@ -276,6 +277,13 @@ typedef struct _signCallbacks {
 /// @{
 #define PAEW_DEV_INFO_SESSKEY_HASH_LEN		0x04 ///<length of dragon ball group hash
 #define PAEW_DEV_INFO_N_T_INVALID			0xFF ///<dragon ball N/T
+/// @}
+
+/**
+* \defgroup group_bio_dev_info bio device info
+*/
+/// @{
+#define PAEW_DEV_INFO_BLE_VERSION_LEN		0x04 ///<length of BLE version
 /// @}
 
 #define PAEW_DEV_INFO_LCD_NULL				0x00000000
@@ -324,6 +332,9 @@ typedef struct _PAEW_DevInfo
 	unsigned char	pbSessKeyHash[PAEW_DEV_INFO_SESSKEY_HASH_LEN]; ///<dragon ball device group hash
 	uint8_t			nN; ///<group device count of dragon ball device
 	uint8_t			nT; ///<minimum valid device count of dragon ball device
+
+	//BLE version for bio device
+	unsigned char	pbBLEVersion[PAEW_DEV_INFO_BLE_VERSION_LEN]; ///<bio BLE version
 } PAEW_DevInfo;
 
 /**
@@ -449,6 +460,7 @@ typedef struct _PAEW_ERC20Info
 #define PAEW_FW_VERSION_CHIP_VERSION_LEN	0x04 ///<Chip version length
 #define PAEW_FW_VERSION_MINORVSERION_LEN	0x04 ///<Minor version length
 #define PAEW_FW_VERSION_LOADERVSERION_LEN	0x04 ///<Loader version length
+#define PAEW_FW_VERSION_BLEVERSION_LEN		0x04 ///<BLE version length
 #define PAEW_FW_VERSION_ALGVSERION_MAX_LEN	0x20 ///<Algorithm version max length
 /**
  * \brief Firmware version structure
@@ -461,6 +473,7 @@ typedef struct _PAEW_FWVersion
 	unsigned char	pbMinorVersion[PAEW_FW_VERSION_MINORVSERION_LEN]; ///<Minor version
 	unsigned char	pbLoaderChipVersion[PAEW_FW_VERSION_CHIP_VERSION_LEN]; ///<Loader chip version
 	unsigned char	pbLoaderVersion[PAEW_FW_VERSION_LOADERVSERION_LEN]; ///<Loader version
+	unsigned char	pbBLEVersion[PAEW_FW_VERSION_BLEVERSION_LEN];
 	unsigned char	pbAlgVersion[PAEW_FW_VERSION_ALGVSERION_MAX_LEN]; ///<Algorithm version
 	size_t			nAlgVersionLen; ///<Algorithm version length
 } PAEW_FWVersion;
@@ -565,6 +578,14 @@ int EWALLET_API PAEW_GetDevContext(void * const pPAEWContext, const size_t nDevI
 * \return			#PAEW_RET_SUCCESS means success, and other value means failure (\ref group_retvalue)
 */
 int EWALLET_API PAEW_GetFWVersion(void * const pPAEWContext, const size_t nDevIndex, PAEW_FWVersion * const pFWVersion);
+
+/**
+* \brief			Get current connected device count
+* \param[in]		pPAEWContext	library context, shouldn't be NULL
+* \param[out]		pnDevCount		returned device count, shouldn't be NULL
+* \return			#PAEW_RET_SUCCESS means success, and other value means failure (\ref group_retvalue)
+*/
+int EWALLET_API PAEW_GetDevCount(void * const pPAEWContext, size_t * const pnDevCount);
 
 /**
 * \brief			Get device info
@@ -1365,27 +1386,42 @@ int EWALLET_API PAEW_Format(void * const pPAEWContext, const size_t nDevIndex);
 int EWALLET_API PAEW_Format_Ex(void * const pPAEWContext, const size_t nDevIndex, const tFunc_PutState_Callback pPutStateCallback, void * const pCallbackContext);
 
 /**
-* \brief			Update COS
+* \brief			Update user COS
 * \param[in]		pPAEWContext	library context, shouldn't be NULL
 * \param[in]		nDevIndex		index of device, valid range of value is [0, nDevCount-1]
-* \param[in]		pbCOSData		COS data
-* \param[in]		nCOSDataLen		length of COS data
+* \param[in]		pbUserCOSData	user COS data
+* \param[in]		nUserCOSDataLen	length of user COS data
 * \return			#PAEW_RET_SUCCESS means success, and other value means failure (\ref group_retvalue)
 */
-int EWALLET_API PAEW_UpdateCOS(void * const pPAEWContext, const size_t nDevIndex, const unsigned char * const pbCOSData, const size_t nCOSDataLen);
+int EWALLET_API PAEW_UpdateCOS(void * const pPAEWContext, const size_t nDevIndex, const unsigned char * const pbUserCOSData, const size_t nUserCOSDataLen);
 
 /**
-* \brief		Update COS using progress callback and context, support resume from breakpoint of last unfinished procedure
+* \brief		Update user COS using progress callback and context, support resume from breakpoint of last unfinished procedure
 * \param[in]	pPAEWContext		library context, shouldn't be NULL
 * \param[in]	nDevIndex			index of device, valid range of value is [0, nDevCount-1]
 * \param[in]	bRestart			0 means resume breakpoint of last procedure, 1 means restart COS download
-* \param[in]	pbCOSData			COS data
-* \param[in]	nCOSDataLen			length of COS data
+* \param[in]	pbUserCOSData		user COS data
+* \param[in]	nUserCOSDataLen		length of user COS data
 * \param[in]	pProgressCallback	progress callback to receive progress of updating
 * \param[in]	pCallbackContext	context of progress callback
 * \return			#PAEW_RET_SUCCESS means success, and other value means failure (\ref group_retvalue)
 */
-int EWALLET_API PAEW_UpdateCOS_Ex(void * const pPAEWContext, const size_t nDevIndex, const unsigned char bRestart, const unsigned char * const pbCOSData, const size_t nCOSDataLen, const tFunc_Progress_Callback pProgressCallback, void * const pCallbackContext);
+int EWALLET_API PAEW_UpdateCOS_Ex(void * const pPAEWContext, const size_t nDevIndex, const unsigned char bRestart, const unsigned char * const pbUserCOSData, const size_t nUserCOSDataLen, const tFunc_Progress_Callback pProgressCallback, void * const pCallbackContext);
+
+/**
+* \brief		Update user COS and BLE COS using progress callback and context, support resume from breakpoint of last unfinished procedure
+* \param[in]	pPAEWContext		library context, shouldn't be NULL
+* \param[in]	nDevIndex			index of device, valid range of value is [0, nDevCount-1]
+* \param[in]	bRestart			0 means resume breakpoint of last procedure, 1 means restart COS download
+* \param[in]	pbUserCOSData		user COS data
+* \param[in]	nUserCOSDataLen		length of user COS data
+* \param[in]	pbBLECOSData		BLE COS data
+* \param[in]	nBLECOSDataLen		length of BLE COS data
+* \param[in]	pProgressCallback	progress callback to receive progress of updating
+* \param[in]	pCallbackContext	context of progress callback
+* \return			#PAEW_RET_SUCCESS means success, and other value means failure (\ref group_retvalue)
+*/
+int EWALLET_API PAEW_UpdateCOS_Ex2(void * const pPAEWContext, const size_t nDevIndex, const unsigned char bRestart, const unsigned char * const pbUserCOSData, const size_t nUserCOSDataLen, const unsigned char * const pbBLECOSData, const size_t nBLECOSDataLen, const tFunc_Progress_Callback pProgressCallback, void * const pCallbackContext);
 
 /**
 * \brief			EOS transaction string (Json) serialization (implemented by software)
